@@ -1,0 +1,20 @@
+{
+  "claims": [
+    "CLM-2026-A-ACL",
+    "CLM-2026-P-PT"
+  ],
+  "total_billed": "480000.00",
+  "insurers_pay": "458630.00",
+  "member_out_of_pocket": "21370.00",
+  "saved_by_coordination": "37130.00",
+  "preauth_gap_cost": "17740.00",
+  "artifacts": {
+    "cost_flow": "/home/user/repos/duco-agent-ai-assessment/outputs/cost_flow.html",
+    "json": "/home/user/repos/duco-agent-ai-assessment/outputs/financial_breakdown.json",
+    "script": "/home/user/repos/duco-agent-ai-assessment/outputs/briefing_script.txt",
+    "audio": "/home/user/repos/duco-agent-ai-assessment/outputs/briefing.mp3",
+    "trace": "/home/user/repos/duco-agent-ai-assessment/outputs/run_trace.json",
+    "preauth_letters": "/home/user/repos/duco-agent-ai-assessment/outputs/preauth_letters",
+    "summary": "/home/user/repos/duco-agent-ai-assessment/outputs/run_summary.json"
+  }
+}

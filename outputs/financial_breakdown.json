@@ -1,0 +1,390 @@
+{
+  "generated_at": "2026-11-26",
+  "household": {
+    "total_billed": "480000.00",
+    "insurers_pay": "458630.00",
+    "member_out_of_pocket": "21370.00",
+    "saved_by_coordination": "37130.00"
+  },
+  "claims": {
+    "CLM-2026-A-ACL": {
+      "claim": {
+        "claim_id": "CLM-2026-A-ACL",
+        "patient_name": "Aarav Sen",
+        "member_id": "SEN-A-002",
+        "provider_name": "Dr. Rohit Naik",
+        "service_date": "2026-12-04",
+        "total_billed": "450000.00",
+        "document_refs": [
+          "fixtures/aarav_mri_report.pdf",
+          "fixtures/surgeon_estimate.jpg",
+          "fixtures/user_query.txt"
+        ],
+        "narrative": "Upcoming ACL reconstruction with partial meniscectomy for a complete ACL tear and medial meniscus tear.",
+        "lines": [
+          {
+            "description": "Arthroscopically aided ACL reconstruction",
+            "quantity": 1,
+            "unit_rate": "350000.00",
+            "billed_amount": "350000.00",
+            "cpt_code": "29888",
+            "icd_codes": [
+              "S83.511A",
+              "S83.241A"
+            ],
+            "category": "professional",
+            "non_covered": false,
+            "code_confidence": 0.93,
+            "code_source": "printed"
+          },
+          {
+            "description": "Arthroscopy, knee, surgical; with meniscectomy",
+            "quantity": 1,
+            "unit_rate": "100000.00",
+            "billed_amount": "100000.00",
+            "cpt_code": "29881",
+            "icd_codes": [
+              "S83.511A",
+              "S83.241A"
+            ],
+            "category": "professional",
+            "non_covered": false,
+            "code_confidence": 0.93,
+            "code_source": "printed"
+          }
+        ]
+      },
+      "primary_plan": "PLAN_B",
+      "secondary_plan": "PLAN_A",
+      "primary": {
+        "claim_id": "CLM-2026-A-ACL",
+        "plan_id": "PLAN_B",
+        "role": "primary",
+        "allowed_total": "450000.00",
+        "non_covered_total": "0.00",
+        "deductible_applied": "3000.00",
+        "coinsurance_member": "44700.00",
+        "plan_paid": "402300.00",
+        "member_paid": "47700.00",
+        "preauth_penalty": "0.00",
+        "oop_cap_applied": "0.00",
+        "notes": [],
+        "lines": [
+          {
+            "line_description": "Arthroscopically aided ACL reconstruction",
+            "cpt_code": "29888",
+            "billed": "350000.00",
+            "allowed": "350000.00",
+            "non_covered": "0.00",
+            "deductible_applied": "3000.00",
+            "coinsurance_member": "34700.00",
+            "plan_paid": "312300.00",
+            "member_paid": "37700.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "37700.00",
+            "notes": []
+          },
+          {
+            "line_description": "Arthroscopy, knee, surgical; with meniscectomy",
+            "cpt_code": "29881",
+            "billed": "100000.00",
+            "allowed": "100000.00",
+            "non_covered": "0.00",
+            "deductible_applied": "0.00",
+            "coinsurance_member": "10000.00",
+            "plan_paid": "90000.00",
+            "member_paid": "10000.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "10000.00",
+            "notes": []
+          }
+        ]
+      },
+      "secondary": {
+        "claim_id": "CLM-2026-A-ACL",
+        "plan_id": "PLAN_A",
+        "role": "secondary",
+        "allowed_total": "47700.00",
+        "non_covered_total": "0.00",
+        "deductible_applied": "5000.00",
+        "coinsurance_member": "8540.00",
+        "plan_paid": "34160.00",
+        "member_paid": "13540.00",
+        "preauth_penalty": "0.00",
+        "oop_cap_applied": "0.00",
+        "notes": [],
+        "lines": [
+          {
+            "line_description": "Arthroscopically aided ACL reconstruction",
+            "cpt_code": "29888",
+            "billed": "350000.00",
+            "allowed": "37700.00",
+            "non_covered": "0.00",
+            "deductible_applied": "5000.00",
+            "coinsurance_member": "6540.00",
+            "plan_paid": "26160.00",
+            "member_paid": "11540.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "11540.00",
+            "notes": []
+          },
+          {
+            "line_description": "Arthroscopy, knee, surgical; with meniscectomy",
+            "cpt_code": "29881",
+            "billed": "100000.00",
+            "allowed": "10000.00",
+            "non_covered": "0.00",
+            "deductible_applied": "0.00",
+            "coinsurance_member": "2000.00",
+            "plan_paid": "8000.00",
+            "member_paid": "2000.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "2000.00",
+            "notes": []
+          }
+        ]
+      },
+      "preauth_required": {
+        "PLAN_B": true,
+        "PLAN_A": true
+      },
+      "preauth_obtained": {
+        "PLAN_B": true,
+        "PLAN_A": true
+      },
+      "total_plan_paid": "436460.00",
+      "member_out_of_pocket": "13540.00",
+      "savings_vs_primary_only": "34160.00",
+      "warnings": []
+    },
+    "CLM-2026-P-PT": {
+      "claim": {
+        "claim_id": "CLM-2026-P-PT",
+        "patient_name": "Priya Sen",
+        "member_id": "SEN-P-001",
+        "provider_name": "Lakshmi Physiotherapy",
+        "service_date": "2026-11-12",
+        "total_billed": "30000.00",
+        "document_refs": [
+          "fixtures/priya_pt_invoice.png",
+          "fixtures/user_query.txt"
+        ],
+        "narrative": "Unpaid physiotherapy invoice for chronic low back pain; codes were missing from the bill and have been inferred.",
+        "lines": [
+          {
+            "description": "Physical Therapy Evaluation",
+            "quantity": 1,
+            "unit_rate": "3500.00",
+            "billed_amount": "3500.00",
+            "cpt_code": "97161",
+            "icd_codes": [
+              "M54.5"
+            ],
+            "category": "therapy",
+            "non_covered": false,
+            "code_confidence": 0.902,
+            "code_source": "inferred"
+          },
+          {
+            "description": "Therapeutic Exercise (Ultrasound + IFT)",
+            "quantity": 12,
+            "unit_rate": "2000.00",
+            "billed_amount": "24000.00",
+            "cpt_code": "97110",
+            "icd_codes": [
+              "M54.5"
+            ],
+            "category": "therapy",
+            "non_covered": false,
+            "code_confidence": 0.9,
+            "code_source": "inferred"
+          },
+          {
+            "description": "Home traction equipment (sale)",
+            "quantity": 1,
+            "unit_rate": "2500.00",
+            "billed_amount": "2500.00",
+            "cpt_code": null,
+            "icd_codes": [
+              "M54.5"
+            ],
+            "category": "equipment",
+            "non_covered": true,
+            "code_confidence": 0.449,
+            "code_source": "unavailable"
+          }
+        ]
+      },
+      "primary_plan": "PLAN_A",
+      "secondary_plan": "PLAN_B",
+      "primary": {
+        "claim_id": "CLM-2026-P-PT",
+        "plan_id": "PLAN_A",
+        "role": "primary",
+        "allowed_total": "27500.00",
+        "non_covered_total": "2500.00",
+        "deductible_applied": "3500.00",
+        "coinsurance_member": "4800.00",
+        "plan_paid": "19200.00",
+        "member_paid": "10800.00",
+        "preauth_penalty": "0.00",
+        "oop_cap_applied": "0.00",
+        "notes": [],
+        "lines": [
+          {
+            "line_description": "Physical Therapy Evaluation",
+            "cpt_code": "97161",
+            "billed": "3500.00",
+            "allowed": "3500.00",
+            "non_covered": "0.00",
+            "deductible_applied": "3500.00",
+            "coinsurance_member": "0.00",
+            "plan_paid": "0.00",
+            "member_paid": "3500.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "3500.00",
+            "notes": []
+          },
+          {
+            "line_description": "Therapeutic Exercise (Ultrasound + IFT)",
+            "cpt_code": "97110",
+            "billed": "24000.00",
+            "allowed": "24000.00",
+            "non_covered": "0.00",
+            "deductible_applied": "0.00",
+            "coinsurance_member": "4800.00",
+            "plan_paid": "19200.00",
+            "member_paid": "4800.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "4800.00",
+            "notes": []
+          },
+          {
+            "line_description": "Home traction equipment (sale)",
+            "cpt_code": null,
+            "billed": "2500.00",
+            "allowed": "0.00",
+            "non_covered": "2500.00",
+            "deductible_applied": "0.00",
+            "coinsurance_member": "0.00",
+            "plan_paid": "0.00",
+            "member_paid": "2500.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "0.00",
+            "notes": []
+          }
+        ]
+      },
+      "secondary": {
+        "claim_id": "CLM-2026-P-PT",
+        "plan_id": "PLAN_B",
+        "role": "secondary",
+        "allowed_total": "8300.00",
+        "non_covered_total": "2500.00",
+        "deductible_applied": "5000.00",
+        "coinsurance_member": "330.00",
+        "plan_paid": "2970.00",
+        "member_paid": "7830.00",
+        "preauth_penalty": "0.00",
+        "oop_cap_applied": "0.00",
+        "notes": [],
+        "lines": [
+          {
+            "line_description": "Physical Therapy Evaluation",
+            "cpt_code": "97161",
+            "billed": "3500.00",
+            "allowed": "3500.00",
+            "non_covered": "0.00",
+            "deductible_applied": "3500.00",
+            "coinsurance_member": "0.00",
+            "plan_paid": "0.00",
+            "member_paid": "3500.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "3500.00",
+            "notes": []
+          },
+          {
+            "line_description": "Therapeutic Exercise (Ultrasound + IFT)",
+            "cpt_code": "97110",
+            "billed": "24000.00",
+            "allowed": "4800.00",
+            "non_covered": "0.00",
+            "deductible_applied": "1500.00",
+            "coinsurance_member": "330.00",
+            "plan_paid": "2970.00",
+            "member_paid": "1830.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "1830.00",
+            "notes": []
+          },
+          {
+            "line_description": "Home traction equipment (sale)",
+            "cpt_code": null,
+            "billed": "2500.00",
+            "allowed": "0.00",
+            "non_covered": "2500.00",
+            "deductible_applied": "0.00",
+            "coinsurance_member": "0.00",
+            "plan_paid": "0.00",
+            "member_paid": "2500.00",
+            "preauth_penalty": "0.00",
+            "member_paid_covered": "0.00",
+            "notes": []
+          }
+        ]
+      },
+      "preauth_required": {
+        "PLAN_A": false,
+        "PLAN_B": false
+      },
+      "preauth_obtained": {
+        "PLAN_A": false,
+        "PLAN_B": false
+      },
+      "total_plan_paid": "22170.00",
+      "member_out_of_pocket": "7830.00",
+      "savings_vs_primary_only": "2970.00",
+      "warnings": [
+        "2500.00 of the bill is excluded by both plans (home traction equipment is not a covered benefit)"
+      ]
+    }
+  },
+  "preauth": {
+    "CLM-2026-A-ACL:PLAN_B": {
+      "claim_id": "CLM-2026-A-ACL",
+      "plan_id": "PLAN_B",
+      "required": true,
+      "approved": true,
+      "reference": "PA-B-01001",
+      "letter_path": "/home/user/repos/duco-agent-ai-assessment/outputs/preauth_letters/CLM-2026-A-ACL_PLAN_B.pdf",
+      "note": ""
+    },
+    "CLM-2026-A-ACL:PLAN_A": {
+      "claim_id": "CLM-2026-A-ACL",
+      "plan_id": "PLAN_A",
+      "required": true,
+      "approved": true,
+      "reference": "PA-A-01002",
+      "letter_path": "/home/user/repos/duco-agent-ai-assessment/outputs/preauth_letters/CLM-2026-A-ACL_PLAN_A.pdf",
+      "note": ""
+    },
+    "CLM-2026-P-PT:PLAN_A": {
+      "claim_id": "CLM-2026-P-PT",
+      "plan_id": "PLAN_A",
+      "required": false,
+      "approved": false,
+      "reference": "",
+      "letter_path": "",
+      "note": "no pre-authorisation required for this benefit; claim can be filed directly"
+    },
+    "CLM-2026-P-PT:PLAN_B": {
+      "claim_id": "CLM-2026-P-PT",
+      "plan_id": "PLAN_B",
+      "required": false,
+      "approved": false,
+      "reference": "",
+      "letter_path": "",
+      "note": "no pre-authorisation required for this benefit; claim can be filed directly"
+    }
+  }
+}
