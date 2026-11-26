@@ -1,3 +1,5 @@
+> **Legacy note:** these are the benefit rules for the original offline CLI scenario. The platform's generic engine is documented in [`COORDINATION_RULES.md`](COORDINATION_RULES.md).
+
 # Coordination-of-benefits rules used by the engine
 
 > The plan terms in `duco_agent/config.py` are **simulated for this assessment**. They are typical of Indian group health policies (per-member deductible, coinsurance, annual out-of-pocket maximum, pre-authorisation above a threshold) but they are not anyone's actual policy wording, and the letters the system drafts are drafts.

@@ -1,3 +1,5 @@
+> **Legacy note:** this document describes the original offline CLI assessment (`run_demo.py`, `duco_agent/engines/cob_engine.py`). The dynamic platform is documented in [`PLATFORM.md`](PLATFORM.md) and [`COORDINATION_RULES.md`](COORDINATION_RULES.md).
+
 # Architecture
 
 ## Layers
