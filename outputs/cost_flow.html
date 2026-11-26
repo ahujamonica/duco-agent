@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DuCO-Agent · Coordination of Benefits · Sen household</title>
+<style>
+  :root {
+    --navy:#12304f; --teal:#0f766e; --sand:#f6f1e7; --ink:#1d2733; --muted:#6b7684;
+    --line:#e3e8ee; --ok:#0f766e; --warn:#b45309; --member:#b45309;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#fbfcfd; }
+  header { background:linear-gradient(135deg,var(--navy),#1b4a72); color:#fff; padding:34px 24px 28px; }
+  .wrap { max-width:1080px; margin:0 auto; }
+  header .kicker { letter-spacing:.14em; text-transform:uppercase; font-size:11px; opacity:.75; }
+  header h1 { margin:6px 0 4px; font-size:28px; font-weight:650; letter-spacing:-.02em; }
+  header p { margin:0; opacity:.8; font-size:13px; }
+  .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:22px; }
+  .summary div { background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.16); border-radius:12px; padding:12px 14px; }
+  .summary span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; opacity:.7; }
+  .summary strong { font-size:19px; font-weight:600; }
+  main { padding:26px 24px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px 20px 12px; margin-bottom:20px; box-shadow:0 1px 2px rgba(18,48,79,.04); }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .card-head h3 { margin:0 0 2px; font-size:17px; }
+  .muted { color:var(--muted); font-size:12.5px; }
+  .amount { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .bar { display:flex; height:34px; border-radius:9px; overflow:hidden; margin:16px 0 14px; background:#eef1f4; }
+  .seg { display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; white-space:nowrap; overflow:hidden; }
+  .seg.primary { background:var(--navy); }
+  .seg.secondary { background:var(--teal); }
+  .seg.member { background:var(--member); }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; margin:-4px 0 16px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; color:var(--muted); }
+  .legend strong { color:var(--ink); font-weight:600; }
+  .dot { width:9px; height:9px; border-radius:3px; display:inline-block; }
+  .dot.primary { background:var(--navy); }
+  .dot.secondary { background:var(--teal); }
+  .dot.member { background:var(--member); }
+  .pills { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .pill { background:var(--sand); border-radius:10px; padding:9px 11px; }
+  .pill span { display:block; }
+  .pill strong { font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:12.6px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-bottom:1px solid var(--line); padding:8px 6px; }
+  td { padding:9px 6px; border-bottom:1px solid #f0f3f6; vertical-align:top; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .strong { font-weight:600; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; }
+  .badge.ok { background:#e6f4f1; color:#0b5f58; }
+  .badge.warn { background:#fdf1e3; color:#9a4a06; }
+  .badge.soft { background:#eef1f4; color:#4b5663; }
+  .card-foot { padding:12px 0 6px; display:flex; gap:8px; flex-wrap:wrap; }
+  .grid2 { display:grid; grid-template-columns:1.2fr .8fr; gap:20px; }
+  .card h3.sec { font-size:15px; margin:0 0 10px; }
+  ul { margin:6px 0 10px; padding-left:18px; font-size:13px; line-height:1.55; }
+  .foot { color:var(--muted); font-size:11.5px; text-align:center; margin-top:26px; }
+  @media (max-width:820px) { .summary, .pills { grid-template-columns:repeat(2,1fr); } .grid2 { grid-template-columns:1fr; } }
+  @media print { body { background:#fff; } header { background:var(--navy) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } .card { break-inside:avoid; box-shadow:none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">DuCO-Agent · Coordination of Benefits</div>
+    <h1>Priya &amp; Aarav Sen — what the two plans actually pay</h1>
+    <p>Generated 26 November 2026 from the physiotherapy invoice, the MRI report, the surgeon's estimate and Aarav's voice query.</p>
+    <div class="summary">
+      <div><span>Total billed</span><strong>₹480,000.00</strong></div>
+      <div><span>Insurers pay</span><strong>₹458,630.00</strong></div>
+      <div><span>You pay</span><strong>₹21,370.00</strong></div>
+      <div><span>Saved by COB</span><strong>₹37,130.00</strong></div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>Aarav Sen</h3>
+        <p class="muted">Dr. Rohit Naik · service date 04 Dec 2026 · claim CLM-2026-A-ACL</p>
+      </div>
+      <div class="amount">₹450,000.00</div>
+    </div>
+    <div class="bar" role="img" aria-label="Payment split: Insurer2 89 percent, Insurer1 8 percent, you 3 percent">
+      <div class="seg primary" style="width:89.40%"></div>
+      <div class="seg secondary" style="width:7.59%"></div>
+      <div class="seg member" style="width:3.01%"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot primary"></i>Insurer2 pays <strong>₹402,300.00</strong></span>
+      <span><i class="dot secondary"></i>Insurer1 pays <strong>₹34,160.00</strong></span>
+      <span><i class="dot member"></i>You pay <strong>₹13,540.00</strong></span>
+    </div>
+    <div class="pills">
+      <div class="pill"><span class="muted">Primary plan</span><strong>Insurer2 · HealthGuard Plus</strong></div>
+      <div class="pill"><span class="muted">Secondary plan</span><strong>Insurer1 · SecureShield Corporate Health</strong></div>
+      <div class="pill"><span class="muted">Out of pocket</span><strong>₹13,540.00</strong></div>
+      <div class="pill"><span class="muted">Saved by coordination</span><strong>₹34,160.00</strong></div>
+    </div>
+    <table>
+      <thead><tr><th>Service</th><th>CPT</th><th class="num">Billed</th><th class="num">Allowed</th><th class="num">Primary paid</th><th class="num">Secondary paid</th><th class="num">You pay</th><th>Coverage</th></tr></thead>
+      <tbody><tr>
+      <td>Arthroscopically aided ACL reconstruction</td>
+      <td class="mono">29888</td>
+      <td class="num">₹350,000.00</td>
+      <td class="num">₹350,000.00</td>
+      <td class="num">₹312,300.00</td>
+      <td class="num">₹26,160.00</td>
+      <td class="num strong">₹11,540.00</td>
+      <td><span class="badge ok">Covered</span> <span class="muted">93%</span></td>
+    </tr><tr>
+      <td>Arthroscopy, knee, surgical; with meniscectomy</td>
+      <td class="mono">29881</td>
+      <td class="num">₹100,000.00</td>
+      <td class="num">₹100,000.00</td>
+      <td class="num">₹90,000.00</td>
+      <td class="num">₹8,000.00</td>
+      <td class="num strong">₹2,000.00</td>
+      <td><span class="badge ok">Covered</span> <span class="muted">93%</span></td>
+    </tr></tbody>
+    </table>
+    <div class="card-foot"><span class="badge ok">Insurer2 pre-auth PA-B-01001</span><span class="badge ok">Insurer1 pre-auth PA-A-01002</span></div>
+  </section>
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>Priya Sen</h3>
+        <p class="muted">Lakshmi Physiotherapy · service date 12 Nov 2026 · claim CLM-2026-P-PT</p>
+      </div>
+      <div class="amount">₹30,000.00</div>
+    </div>
+    <div class="bar" role="img" aria-label="Payment split: Insurer1 64 percent, Insurer2 10 percent, you 26 percent">
+      <div class="seg primary" style="width:64.00%"></div>
+      <div class="seg secondary" style="width:9.90%"></div>
+      <div class="seg member" style="width:26.10%"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot primary"></i>Insurer1 pays <strong>₹19,200.00</strong></span>
+      <span><i class="dot secondary"></i>Insurer2 pays <strong>₹2,970.00</strong></span>
+      <span><i class="dot member"></i>You pay <strong>₹7,830.00</strong></span>
+    </div>
+    <div class="pills">
+      <div class="pill"><span class="muted">Primary plan</span><strong>Insurer1 · SecureShield Corporate Health</strong></div>
+      <div class="pill"><span class="muted">Secondary plan</span><strong>Insurer2 · HealthGuard Plus</strong></div>
+      <div class="pill"><span class="muted">Out of pocket</span><strong>₹7,830.00</strong></div>
+      <div class="pill"><span class="muted">Saved by coordination</span><strong>₹2,970.00</strong></div>
+    </div>
+    <table>
+      <thead><tr><th>Service</th><th>CPT</th><th class="num">Billed</th><th class="num">Allowed</th><th class="num">Primary paid</th><th class="num">Secondary paid</th><th class="num">You pay</th><th>Coverage</th></tr></thead>
+      <tbody><tr>
+      <td>Physical Therapy Evaluation</td>
+      <td class="mono">97161</td>
+      <td class="num">₹3,500.00</td>
+      <td class="num">₹3,500.00</td>
+      <td class="num">₹0.00</td>
+      <td class="num">₹0.00</td>
+      <td class="num strong">₹3,500.00</td>
+      <td><span class="badge ok">Covered</span> <span class="muted">90%</span></td>
+    </tr><tr>
+      <td>Therapeutic Exercise (Ultrasound + IFT)</td>
+      <td class="mono">97110</td>
+      <td class="num">₹24,000.00</td>
+      <td class="num">₹24,000.00</td>
+      <td class="num">₹19,200.00</td>
+      <td class="num">₹2,970.00</td>
+      <td class="num strong">₹1,830.00</td>
+      <td><span class="badge ok">Covered</span> <span class="muted">90%</span></td>
+    </tr><tr>
+      <td>Home traction equipment (sale)</td>
+      <td class="mono">—</td>
+      <td class="num">₹2,500.00</td>
+      <td class="num">₹0.00</td>
+      <td class="num">₹0.00</td>
+      <td class="num">₹0.00</td>
+      <td class="num strong">₹2,500.00</td>
+      <td><span class="badge warn">Excluded</span> <span class="muted">45%</span></td>
+    </tr></tbody>
+    </table>
+    <div class="card-foot"><span class="badge soft">Insurer1 pre-auth not required</span><span class="badge soft">Insurer2 pre-auth not required</span></div>
+  </section>
+  <div class="grid2">
+    <section class="card">
+      <h3 class="sec">How the order was decided</h3>
+      <ul>
+        <li><strong>Primary</strong> is the plan where the patient is the policyholder: PLAN_B (Insurer2) for Aarav's surgery, PLAN_A (Insurer1) for Priya's therapy.</li>
+        <li>The <strong>secondary</strong> plan only sees what the primary left unpaid, then applies its own deductible (₹5,000.00), coinsurance (20% / 10%) and annual out-of-pocket maximum.</li>
+        <li>Deductibles already used this year were pulled from each insurer before the maths, so the rollover is real rather than assumed.</li>
+        <li>Pre-authorisation was filed with both insurers for the surgery; if the pre-authorisations were skipped the plans' payments would be cut and the household would pay ₹17,740.00 more.</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3 class="sec">Checks the agent ran</h3>
+      <ul><li><span class="badge ok">passed</span> Physiotherapy scan: 3 service lines, line sum matches the printed total</li><li><span class="badge ok">passed</span> Surgeon estimate: 2 CPT lines, total matching the printed figure</li><li><span class="badge ok">passed</span> MRI report: ACL and meniscus tears read from the text layer</li><li><span class="badge ok">passed</span> Voice query: 4 household goals recognised</li><li><span class="badge ok">passed</span> Coverage verified for both members and both plans</li><li><span class="badge ok">passed</span> Pre-authorisation filed with both insurers (2 references)</li></ul>
+      <h3 class="sec" style="margin-top:6px">Arithmetic that must conserve</h3>
+      <ul><li>CLM-2026-A-ACL: insurers ₹436,460.00 + you ₹13,540.00 = ₹450,000.00</li><li>CLM-2026-P-PT: insurers ₹22,170.00 + you ₹7,830.00 = ₹30,000.00</li></ul>
+      <p class="muted" style="margin-top:4px">Extraction notes: No extraction issues were raised. </p>
+    </section>
+  </div>
+  <p class="foot">DuCO-Agent · plan terms are simulated for this assessment, not real policy wording · every figure recomputes from <span class="mono">outputs/financial_breakdown.json</span></p>
+</main>
+</body>
+</html>
