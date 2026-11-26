@@ -9,12 +9,12 @@
   "saved_by_coordination": "37130.00",
   "preauth_gap_cost": "17740.00",
   "artifacts": {
-    "cost_flow": "/home/user/repos/duco-agent-ai-assessment/outputs/cost_flow.html",
-    "json": "/home/user/repos/duco-agent-ai-assessment/outputs/financial_breakdown.json",
-    "script": "/home/user/repos/duco-agent-ai-assessment/outputs/briefing_script.txt",
-    "audio": "/home/user/repos/duco-agent-ai-assessment/outputs/briefing.mp3",
-    "trace": "/home/user/repos/duco-agent-ai-assessment/outputs/run_trace.json",
-    "preauth_letters": "/home/user/repos/duco-agent-ai-assessment/outputs/preauth_letters",
-    "summary": "/home/user/repos/duco-agent-ai-assessment/outputs/run_summary.json"
+    "cost_flow": "outputs/cost_flow.html",
+    "json": "outputs/financial_breakdown.json",
+    "script": "outputs/briefing_script.txt",
+    "audio": "outputs/briefing.mp3",
+    "trace": "outputs/run_trace.json",
+    "preauth_letters": "outputs/preauth_letters",
+    "summary": "outputs/run_summary.json"
   }
 }
