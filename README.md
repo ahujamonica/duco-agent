@@ -101,9 +101,9 @@ The intake trace records which preprocessing pass won and why. For example, on t
 `duco_agent/mock_api/service.py` exposes eligibility, benefits with year-to-date accumulators, pre-auth submission and claim adjudication for both plans. The same handlers back two transports:
 
 ```bash
-python run_demo.py                    # in-process (default, no ports)
-python -m duco_agent.mock_api.server --port 8765   # HTTP server
-python run_demo.py --mode http        # client talks to the server
+python run_demo.py                                    # in-process (default, no ports)
+python -m duco_agent.mock_api.server --port 8765      # HTTP server
+python run_demo.py --mode http --base-url http://127.0.0.1:8765
 ```
 
 ## Project layout

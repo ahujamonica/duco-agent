@@ -60,10 +60,16 @@ class RunResult:
 class Orchestrator:
     name = "Orchestrator"
 
-    def __init__(self, root: Path, output_dir: Path | None = None, client_mode: str = "inprocess") -> None:
+    def __init__(
+        self,
+        root: Path,
+        output_dir: Path | None = None,
+        client_mode: str = "inprocess",
+        base_url: str = "http://127.0.0.1:8765",
+    ) -> None:
         self.root = root
         self.output_dir = output_dir or root / "outputs"
-        self.client = InsurerAPIClient(mode=client_mode)
+        self.client = InsurerAPIClient(mode=client_mode, base_url=base_url)
         self.trace = TraceRecorder()
         self.goals = [
             Goal("extract_and_code", "IntakeAgent"),

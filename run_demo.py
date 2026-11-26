@@ -33,13 +33,14 @@ def _ensure_fixtures() -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="DuCO-Agent demo")
     parser.add_argument("--mode", choices=("inprocess", "http"), default="inprocess")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8765", help="mock insurer API base URL for --mode http")
     parser.add_argument("--output", default=str(ROOT / "outputs"))
     parser.add_argument("--json", action="store_true", help="print the run summary as JSON")
     args = parser.parse_args()
 
     _ensure_fixtures()
     output_dir = Path(args.output)
-    result = Orchestrator(ROOT, output_dir, client_mode=args.mode).run()
+    result = Orchestrator(ROOT, output_dir, client_mode=args.mode, base_url=args.base_url).run()
     summary = result.summary()
 
     if args.json:

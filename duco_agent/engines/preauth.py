@@ -20,7 +20,7 @@ from reportlab.platypus import (
 )
 
 from .. import codes
-from ..config import MEMBERS, PLANS
+from ..config import MEMBERS
 from ..models import Claim, PlanTerms, money, money_str
 
 NAVY = colors.HexColor("#12304f")
