@@ -1,0 +1,9 @@
+# Runtime
+Pillow>=10.0
+pytesseract>=0.3.10
+pymupdf>=1.24
+reportlab>=4.0
+# Optional: spoken briefing (falls back to a text script when absent)
+gTTS>=2.5; extra == "audio"
+# Tests
+pytest>=8.0
