@@ -212,11 +212,33 @@ def coordinate(
     preauth_obtained: dict[str, bool] | None = None,
     accumulators: dict[tuple[str, str], MemberAccumulator] | None = None,
 ) -> ClaimOutcome:
-    """Run the full primary-then-secondary adjudication for one claim."""
+    """Run the full primary-then-secondary adjudication for one claim (configured plans)."""
+    return coordinate_plans(
+        claim,
+        PLANS[primary_plan_id],
+        PLANS[secondary_plan_id],
+        preauth_obtained=preauth_obtained,
+        accumulators=accumulators,
+    )
+
+
+def coordinate_plans(
+    claim: Claim,
+    primary_plan: PlanTerms,
+    secondary_plan: PlanTerms,
+    preauth_obtained: dict[str, bool] | None = None,
+    accumulators: dict[tuple[str, str], MemberAccumulator] | None = None,
+    rule_note: str = "",
+) -> ClaimOutcome:
+    """Run COB for a claim under two explicitly supplied plan versions.
+
+    The platform passes the policy versions stored for the case, so no plan term
+    is hardcoded anywhere in the calculation path.
+    """
     accumulators = accumulators or ACCUMULATORS
     preauth_obtained = preauth_obtained or {}
-    primary_plan = PLANS[primary_plan_id]
-    secondary_plan = PLANS[secondary_plan_id]
+    primary_plan_id = primary_plan.plan_id
+    secondary_plan_id = secondary_plan.plan_id
     member_id = claim.member_id
 
     primary_accum = accumulators[(primary_plan_id, member_id)]
@@ -243,6 +265,8 @@ def coordinate(
     if secondary_result.member_paid > 0 and secondary_plan.plan_id not in preauth_obtained:
         warnings.append("secondary plan benefit assumed pre-authorised; letters are drafted for both insurers")
 
+    if rule_note:
+        warnings.append(rule_note)
     outcome = ClaimOutcome(
         claim=claim,
         primary_plan=primary_plan_id,

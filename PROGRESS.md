@@ -1,24 +1,55 @@
 # Build progress
 
-## 2026-11-26
+## 2026-11-26 — original assessment (preserved)
 
-- Read the assessment brief: DuCO-Agent, agentic + multi-modal COB system, deadline 6:00 PM IST 27 Nov.
-- Wrote the report skeleton, domain model, plan terms and the benefit-rules doc first, so the arithmetic had a written contract before any agent code.
-- Generated the four mock inputs (scanned invoice without codes, MRI PDF, estimate photo, voice transcript) and tuned the scan effect until OCR was realistic but fair.
-- Built extraction with per-field confidence and an OCR retry loop; wired the CPT/ICD inference for the uncoded invoice.
-- Built the COB engine (primary/secondary, deductibles, coinsurance, OOP maximum, pre-auth penalty, exclusions) with tests.
-- Added the mock insurer APIs (in-process + stdlib HTTP) and the coverage agent that verifies roles and accumulators before any maths.
-- Added the compliance agent (pre-auth requirement check, filing, letter rendering) and the second COB pass that turns the penalty into a saving.
-- Added reporting: printable cost-flow page, JSON breakdown, spoken briefing.
-- Supervisor loop with goals, critic and trace; full demo runs end to end.
+The offline CLI assessment is intact: generated fixtures, OCR retry loop, extraction with confidence, the original COB engine, in-process/HTTP mock insurer APIs, specialist agents, a supervisor with a critic, a printable cost flow, two pre-auth letters, a briefing and 16 tests. See `run_demo.py` and `docs/ARCHITECTURE.md`.
 
-### Decisions
+## 2026-11-26 — dynamic platform
 
-- Deterministic maths in a pure engine, agentic control above it — so every rupee is explainable and testable.
-- Plan terms are simulated and labelled as such; the letters are drafts, and the report says so.
-- Two adjudications by design: the first measures the pre-auth penalty, the second is what the household sees.
-- The demo runs offline (local Tesseract, in-process mock APIs); gTTS is optional and only used for the audio sample.
+### Phase 0/1 — inspect and preserve
+- Read the existing repository and kept the working engine, extraction, mock APIs, agents and tests.
+- Committed the caller-supplied-plan refactor before layering the platform on top.
 
-### Still open
+### Phase 2 — dynamic data and APIs
+- Added users, families, members, policies, policy versions, policy-member links, per-member accumulators, documents, cases, claims/lines, reviews, agent events, eligibility checks, adjudications, pre-authorisations, mock claims/logs, reports and simulator runs.
+- Added JWT auth with PBKDF2 hashing and owner-scoped access.
+- Built family, member and versioned policy APIs; policy numbers are unique; edits create versions.
 
-- Publish to GitHub as a private repository, open the three pull requests, invite the reviewer. (Blocked on GitHub access from the workspace.)
+### Phase 3 — document intelligence
+- Validation, SHA-256 dedupe, PDF text/OCR retries with three preprocessing variants, classification with evidence, per-type parsing, curated CPT/ICD matching, field-level confidence from real OCR/PDF signals, reconciliation and review flags.
+- Optional LLM enrichment is isolated and off by default; it never overwrites confident values.
+
+### Phase 4 — agents
+- Persisted supervisor graph with eight goals and dependencies; nodes call real tools and the mock insurer API.
+- Human review pauses before money; corrections write back and resume. Trace records every decision.
+- Payer order is configurable; assumptions and evidence are exposed.
+
+### Phase 5 — financial engine
+- New generic Decimal engine supporting N plans, deductibles, co-insurance, OOP, annual limits, sub-limits, exclusions, waiting periods, network rules, pre-auth penalties, contractual adjustments and per-member accumulators.
+- Ten invariant checks; recalculation then human hold on failure.
+- Re-runs reverse prior accumulator deltas (including sub-limits) so results are idempotent.
+
+### Phase 6/7 — frontend
+- React 18 + Vite + TypeScript + Tailwind; 14 screens; EN/HI labels; dashboard graph, cost flow, donut, line tables, explain drawer, what-if simulator, gap detector, letters, settings.
+- Connected entirely to the API; no static placeholder numbers in live mode.
+
+### Phase 8 — reports
+- JSON breakdown, printable HTML, execution trace, PDF pre-auth letters, audio briefing with script fallback.
+- Downloads are owner-checked and no-store.
+
+### Phase 9 — QA
+- 39 tests pass, including end-to-end review → adjudication → reports and dynamic mock outcomes.
+- Full stack exercised in the browser: landing, demo, run, results, lines, simulator, letters, dashboard, family, policies, documents.
+
+### Phase 10 — documentation
+- README, platform architecture, coordination rules with a worked example, security posture, QA evidence, Makefile, env example and demo seed script.
+
+### Phase 11 - independent engine review
+- An independent, adversarial review of the money engine found 13 ranked defects plus missing invariants; all are fixed with 17 regression tests. The strengthened checks cover per-line reconciliation, residual discipline for later plans, non-negative buckets, factor range, OOP/sum-insured ceilings, unique plan keys and penalties outside the OOP maximum.
+- Worked-example figures updated to the re-verified household split: Rs 4,57,570 insurers, Rs 22,430 patient.
+
+### Known open items
+- Real insurer/TPA integration (mock only, clearly labelled).
+- Production security gaps documented in `docs/SECURITY.md`.
+- No Redis/worker queue; a single in-process background thread runs a case.
+- Contribution-basis settlement is disclosed as an assumption, not implemented as an alternative engine.

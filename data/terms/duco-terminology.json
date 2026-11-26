@@ -1,0 +1,422 @@
+[
+  {
+    "key": "deductible",
+    "en": "Deductible",
+    "hi": "कटौती योग्य राशि",
+    "en_plain": "The fixed amount you must pay out of your own pocket before your insurance starts paying.",
+    "hi_plain": "यह वह तय रकम है जो बीमा कंपनी के भुगतान शुरू करने से पहले आपको अपनी जेब से देनी होती है।"
+  },
+  {
+    "key": "coinsurance",
+    "en": "Coinsurance",
+    "hi": "सह-बीमा",
+    "en_plain": "The percentage of an approved hospital bill that you share with your insurer after any deductible is met.",
+    "hi_plain": "कटौती योग्य राशि चुकाने के बाद मंजूर अस्पताल बिल का वह प्रतिशत हिस्सा जो आपको और बीमा कंपनी को मिलकर भरना होता है।"
+  },
+  {
+    "key": "copay",
+    "en": "Co-payment",
+    "hi": "सह-भुगतान",
+    "en_plain": "A fixed percentage of every admissible claim that you agree to pay yourself while the insurer pays the rest.",
+    "hi_plain": "हर मंजूर क्लेम का वह तय प्रतिशत हिस्सा जो आपको खुद देना होता है और बाकी बीमा कंपनी देती है।"
+  },
+  {
+    "key": "out_of_pocket_maximum",
+    "en": "Out-of-Pocket Maximum",
+    "hi": "अधिकतम व्यक्तिगत खर्च सीमा",
+    "en_plain": "The most you will have to pay yourself for covered care in a policy year before the insurer covers the rest.",
+    "hi_plain": "एक पॉलिसी वर्ष में कवर किए गए इलाज पर आपकी जेब से होने वाले खर्च की अधिकतम सीमा, जिसके बाद बाकी खर्च बीमा कंपनी उठाती है।"
+  },
+  {
+    "key": "allowed_amount",
+    "en": "Allowed Amount",
+    "hi": "स्वीकृत राशि",
+    "en_plain": "The maximum amount your insurer agrees to pay for a specific treatment or hospital service.",
+    "hi_plain": "किसी खास इलाज या अस्पताल सेवा के लिए बीमा कंपनी द्वारा मंजूर की गई अधिकतम रकम।"
+  },
+  {
+    "key": "contractual_adjustment",
+    "en": "Contractual Adjustment",
+    "hi": "अनुबंध आधारित समायोजन",
+    "en_plain": "The portion of a hospital bill written off because the hospital agreed to lower rates with your insurer.",
+    "hi_plain": "अस्पताल के बिल का वह हिस्सा जो बीमा कंपनी के साथ तय कम दरों के कारण घटा दिया जाता है।"
+  },
+  {
+    "key": "sub_limit",
+    "en": "Sub-limit",
+    "hi": "उप-सीमा",
+    "en_plain": "A cap inside your policy that limits how much the insurer will pay for a specific disease, procedure, or expense.",
+    "hi_plain": "पॉलिसी के भीतर तय की गई वह सीमा जो किसी खास बीमारी, ऑपरेशन या खर्च के लिए भुगतान को सीमित करती है।"
+  },
+  {
+    "key": "room_rent_limit",
+    "en": "Room Rent Limit",
+    "hi": "कमरे के किराए की सीमा",
+    "en_plain": "The highest daily hospital room charge your policy allows without reducing your claim payout.",
+    "hi_plain": "अस्पताल के कमरे का वह अधिकतम दैनिक किराया जिसे आपकी पॉलिसी बिना क्लेम काटे कवर करती है।"
+  },
+  {
+    "key": "proportionate_deduction",
+    "en": "Proportionate Deduction",
+    "hi": "आनुपातिक कटौती",
+    "en_plain": "An extra cut applied across linked hospital charges when you choose a room costlier than your policy limit.",
+    "hi_plain": "पॉलिसी की सीमा से महंगा कमरा चुनने पर इलाज से जुड़े अन्य खर्चों में की जाने वाली अतिरिक्त कटौती।"
+  },
+  {
+    "key": "waiting_period",
+    "en": "Waiting Period",
+    "hi": "प्रतीक्षा अवधि",
+    "en_plain": "The time you must keep a policy active before it starts covering certain illnesses or treatments.",
+    "hi_plain": "पॉलिसी शुरू होने के बाद का वह समय जिसके पूरा होने पर ही कुछ खास बीमारियों या इलाज का कवर मिलता है।"
+  },
+  {
+    "key": "initial_waiting_period",
+    "en": "Initial Waiting Period",
+    "hi": "प्रारंभिक प्रतीक्षा अवधि",
+    "en_plain": "The first 30 days after buying a new policy when only accidental hospitalisations are normally covered.",
+    "hi_plain": "नई पॉलिसी लेने के शुरुआती 30 दिन, जब आम तौर पर केवल दुर्घटना से जुड़े अस्पताल खर्च ही कवर होते हैं।"
+  },
+  {
+    "key": "pre_existing_disease",
+    "en": "Pre-existing Disease",
+    "hi": "पूर्व-मौजूदा बीमारी",
+    "en_plain": "A medical condition diagnosed or treated before you bought your health insurance policy.",
+    "hi_plain": "कोई भी ऐसी बीमारी जिसका पता पॉलिसी खरीदने से पहले चला हो या जिसका इलाज पहले से चल रहा हो।"
+  },
+  {
+    "key": "specific_disease_waiting_period",
+    "en": "Specific Disease Waiting Period",
+    "hi": "विशिष्ट बीमारी प्रतीक्षा अवधि",
+    "en_plain": "A set wait, often one to two years, before planned treatments like cataract or hernia are covered.",
+    "hi_plain": "मोतियाबिंद या हर्निया जैसे तय इलाज कवर होने से पहले की निर्धारित प्रतीक्षा अवधि, जो अक्सर एक से दो साल होती है।"
+  },
+  {
+    "key": "pre_authorisation",
+    "en": "Pre-authorisation",
+    "hi": "पूर्व-स्वीकृति",
+    "en_plain": "Advance approval from your insurer confirming they will pay the hospital directly for your planned or emergency stay.",
+    "hi_plain": "भर्ती होने से पहले या आपात स्थिति में बीमा कंपनी की वह मंजूरी कि वह अस्पताल को सीधे भुगतान करेगी।"
+  },
+  {
+    "key": "cashless_hospitalisation",
+    "en": "Cashless Hospitalisation",
+    "hi": "नकदी-रहित अस्पताल भर्ती",
+    "en_plain": "Hospital treatment where your insurer settles the approved bill directly with the hospital so you do not pay upfront.",
+    "hi_plain": "ऐसा इलाज जिसमें बीमा कंपनी मंजूर बिल सीधे अस्पताल को चुकाती है और आपको पहले पैसे नहीं देने पड़ते।"
+  },
+  {
+    "key": "reimbursement_claim",
+    "en": "Reimbursement Claim",
+    "hi": "प्रतिपूर्ति दावा",
+    "en_plain": "A claim where you pay the hospital first and later submit bills to your insurer to get the approved amount back.",
+    "hi_plain": "ऐसा दावा जिसमें आप पहले अस्पताल का बिल भरते हैं और बाद में कागजात जमा कर बीमा कंपनी से मंजूर रकम वापस लेते हैं।"
+  },
+  {
+    "key": "network_hospital",
+    "en": "Network Hospital",
+    "hi": "नेटवर्क अस्पताल",
+    "en_plain": "A hospital that has a tie-up with your insurer or TPA to provide cashless treatment.",
+    "hi_plain": "वह अस्पताल जिसका आपकी बीमा कंपनी या टीपीए के साथ नकदी-रहित इलाज के लिए समझौता है।"
+  },
+  {
+    "key": "non_network_hospital",
+    "en": "Non-network Hospital",
+    "hi": "गैर-नेटवर्क अस्पताल",
+    "en_plain": "A hospital without a cashless tie-up with your insurer, where you usually pay first and claim reimbursement later.",
+    "hi_plain": "वह अस्पताल जिसका आपकी बीमा कंपनी से नकदी-रहित समझौता नहीं है और जहाँ आम तौर पर पहले भुगतान कर बाद में दावा करना होता है।"
+  },
+  {
+    "key": "rohini_id",
+    "en": "ROHINI ID",
+    "hi": "रोहिणी पहचान संख्या",
+    "en_plain": "A unique national registration number assigned to a hospital in India's health insurance hospital registry.",
+    "hi_plain": "भारत की स्वास्थ्य बीमा अस्पताल पंजी में किसी अस्पताल को दी जाने वाली विशिष्ट पहचान संख्या।"
+  },
+  {
+    "key": "tpa",
+    "en": "Third Party Administrator (TPA)",
+    "hi": "तृतीय पक्ष प्रशासक",
+    "en_plain": "A licensed service company hired by an insurer to process cashless requests, hospital coordination, and claims.",
+    "hi_plain": "बीमा कंपनी द्वारा नियुक्त एक लाइसेंस प्राप्त संस्था जो नकदी-रहित मंजूरी और दावों की प्रक्रिया संभालती है।"
+  },
+  {
+    "key": "coordination_of_benefits",
+    "en": "Coordination of Benefits",
+    "hi": "लाभों का समन्वय",
+    "en_plain": "The process of using two or more health policies together so your total payout does not exceed the actual hospital bill.",
+    "hi_plain": "दो या अधिक स्वास्थ्य पॉलिसियों का एक साथ उपयोग करने की प्रक्रिया ताकि कुल भुगतान असली अस्पताल बिल से अधिक न हो।"
+  },
+  {
+    "key": "primary_payer",
+    "en": "Primary Payer",
+    "hi": "प्राथमिक भुगतानकर्ता",
+    "en_plain": "The first health insurer you choose to submit your hospital claim to under Indian multiple-policy rules.",
+    "hi_plain": "वह पहली बीमा कंपनी जिसके पास आप एकाधिक पॉलिसी नियमों के तहत अपना अस्पताल दावा भेजते हैं।"
+  },
+  {
+    "key": "secondary_payer",
+    "en": "Secondary Payer",
+    "hi": "द्वितीयक भुगतानकर्ता",
+    "en_plain": "The second insurer you approach for the unpaid balance or disallowed portion after the primary insurer settles.",
+    "hi_plain": "वह दूसरी बीमा कंपनी जिससे प्राथमिक कंपनी के निपटान के बाद बची हुई या अस्वीकृत राशि का दावा किया जाता है।"
+  },
+  {
+    "key": "contribution_clause",
+    "en": "Contribution Clause",
+    "hi": "अंशदान खंड",
+    "en_plain": "A policy rule governing how multiple insurers share a hospital bill so a patient cannot collect more than the actual cost.",
+    "hi_plain": "पॉलिसी का वह नियम जो तय करता है कि एक से अधिक बीमा कंपनियाँ बिल कैसे साझा करें ताकि कुल भुगतान असली खर्च से ज्यादा न हो।"
+  },
+  {
+    "key": "balance_claim",
+    "en": "Balance Claim",
+    "hi": "शेष राशि का दावा",
+    "en_plain": "A claim filed with a second insurer for the remaining hospital bill not paid by the first insurer.",
+    "hi_plain": "पहली बीमा कंपनी से भुगतान न हो पाए बचे हुए अस्पताल बिल के लिए दूसरी बीमा कंपनी में किया गया दावा।"
+  },
+  {
+    "key": "claim",
+    "en": "Claim",
+    "hi": "दावा",
+    "en_plain": "A formal request asking your insurer to pay for medical expenses covered under your policy.",
+    "hi_plain": "अपनी पॉलिसी के तहत कवर किए गए इलाज के खर्च का भुगतान पाने के लिए बीमा कंपनी से किया गया औपचारिक अनुरोध।"
+  },
+  {
+    "key": "claim_intimation",
+    "en": "Claim Intimation",
+    "hi": "दावे की सूचना",
+    "en_plain": "Notifying your insurer or TPA about a planned or emergency hospital admission within the required time.",
+    "hi_plain": "तय समय के भीतर अपनी बीमा कंपनी या टीपीए को अस्पताल में भर्ती होने की जानकारी देना।"
+  },
+  {
+    "key": "adjudication",
+    "en": "Claim Adjudication",
+    "hi": "दावा मूल्यांकन",
+    "en_plain": "The insurer's review of your medical records and bills to decide how much of the claim will be paid.",
+    "hi_plain": "बीमा कंपनी द्वारा आपके मेडिकल कागजात और बिल की जांच कर यह तय करना कि दावे की कितनी रकम दी जाएगी।"
+  },
+  {
+    "key": "settlement_letter",
+    "en": "Claim Settlement Letter",
+    "hi": "दावा निपटान पत्र",
+    "en_plain": "An official summary showing the billed amount, each deduction made, and the final amount paid by the insurer.",
+    "hi_plain": "एक आधिकारिक विवरण जिसमें कुल बिल, की गई हर कटौती और बीमा कंपनी द्वारा चुकाई गई अंतिम राशि लिखी होती है।"
+  },
+  {
+    "key": "query_letter",
+    "en": "Query Letter",
+    "hi": "पृच्छा पत्र",
+    "en_plain": "A notice from the insurer or TPA asking for missing documents or medical clarifications before approving a claim.",
+    "hi_plain": "बीमा कंपनी या टीपीए का वह पत्र जिसमें दावा मंजूर करने से पहले अधूरे कागजात या चिकित्सीय स्पष्टीकरण माँगे जाते हैं।"
+  },
+  {
+    "key": "repudiation",
+    "en": "Claim Repudiation",
+    "hi": "दावा अस्वीकृति",
+    "en_plain": "A formal refusal by the insurer to pay a claim, along with the specific policy reason for denial.",
+    "hi_plain": "पॉलिसी के तय कारण के साथ बीमा कंपनी द्वारा दावे का भुगतान करने से आधिकारिक इनकार।"
+  },
+  {
+    "key": "policyholder",
+    "en": "Policyholder",
+    "hi": "पॉलिसीधारक",
+    "en_plain": "The person who owns the health insurance policy and is responsible for paying its premiums.",
+    "hi_plain": "वह व्यक्ति जिसके नाम पर स्वास्थ्य बीमा पॉलिसी होती है और जो उसका प्रीमियम भरता है।"
+  },
+  {
+    "key": "insured_member",
+    "en": "Insured Member",
+    "hi": "बीमित सदस्य",
+    "en_plain": "Any person whose medical expenses are covered under the health insurance policy.",
+    "hi_plain": "कोई भी व्यक्ति जिसका इलाज खर्च स्वास्थ्य बीमा पॉलिसी के तहत कवर किया जाता है।"
+  },
+  {
+    "key": "dependent",
+    "en": "Dependent",
+    "hi": "आश्रित",
+    "en_plain": "A family member, such as a spouse, child, or parent, covered under the main policyholder's plan.",
+    "hi_plain": "मुख्य पॉलिसीधारक की योजना में शामिल परिवार का सदस्य, जैसे जीवनसाथी, बच्चे या माता-पिता।"
+  },
+  {
+    "key": "sum_insured",
+    "en": "Sum Insured",
+    "hi": "बीमा राशि",
+    "en_plain": "The maximum total amount your policy will pay for covered hospital bills during one policy year.",
+    "hi_plain": "एक पॉलिसी वर्ष के दौरान कवर किए गए इलाज के लिए बीमा कंपनी द्वारा दी जाने वाली अधिकतम कुल रकम।"
+  },
+  {
+    "key": "cumulative_bonus",
+    "en": "Cumulative Bonus",
+    "hi": "संचयी बोनस",
+    "en_plain": "Extra coverage added to your sum insured as a reward for each claim-free policy year.",
+    "hi_plain": "बिना किसी दावे के हर पॉलिसी वर्ष पूरा होने पर आपकी बीमा राशि में जोड़ा जाने वाला अतिरिक्त कवर।"
+  },
+  {
+    "key": "restoration_benefit",
+    "en": "Restoration Benefit",
+    "hi": "बीमा राशि पुनर्बहाली लाभ",
+    "en_plain": "A policy feature that refills your sum insured if it runs out during the year, subject to policy rules.",
+    "hi_plain": "पॉलिसी की वह सुविधा जो साल के बीच बीमा राशि खत्म हो जाने पर उसे शर्तों के अनुसार फिर से भर देती है।"
+  },
+  {
+    "key": "super_top_up",
+    "en": "Super Top-up Policy",
+    "hi": "सुपर टॉप-अप पॉलिसी",
+    "en_plain": "An extra health plan that starts paying once your total medical bills for the whole year cross a chosen deductible.",
+    "hi_plain": "एक अतिरिक्त स्वास्थ्य पॉलिसी जो पूरे साल के कुल इलाज खर्च के तय सीमा पार करने के बाद भुगतान शुरू करती है।"
+  },
+  {
+    "key": "top_up_policy",
+    "en": "Top-up Policy",
+    "hi": "टॉप-अप पॉलिसी",
+    "en_plain": "An extra health plan that pays only when a single hospital bill crosses the policy's deductible.",
+    "hi_plain": "एक अतिरिक्त स्वास्थ्य पॉलिसी जो तभी भुगतान करती है जब एक ही बार का अस्पताल बिल तय सीमा से अधिक हो।"
+  },
+  {
+    "key": "indemnity_policy",
+    "en": "Indemnity Policy",
+    "hi": "क्षतिपूर्ति पॉलिसी",
+    "en_plain": "A standard health policy that pays your actual covered hospital expenses up to the sum insured.",
+    "hi_plain": "एक सामान्य स्वास्थ्य पॉलिसी जो बीमा राशि की सीमा तक आपके वास्तविक अस्पताल खर्च का भुगतान करती है।"
+  },
+  {
+    "key": "fixed_benefit_policy",
+    "en": "Fixed Benefit Policy",
+    "hi": "निश्चित लाभ पॉलिसी",
+    "en_plain": "A policy that pays a fixed lump sum upon diagnosis or hospitalisation, regardless of the actual bill.",
+    "hi_plain": "ऐसी पॉलिसी जो असली बिल की परवाह किए बिना बीमारी की पुष्टि या भर्ती होने पर एक तय एकमुश्त रकम देती है।"
+  },
+  {
+    "key": "non_payable_items",
+    "en": "Non-payable Items",
+    "hi": "गैर-देय मदें",
+    "en_plain": "Hospital charges such as administrative fees or personal items that standard policies do not cover.",
+    "hi_plain": "अस्पताल के वे खर्च जैसे प्रशासनिक शुल्क या निजी सामान, जिन्हें सामान्य पॉलिसियाँ कवर नहीं करतीं।"
+  },
+  {
+    "key": "consumables",
+    "en": "Consumables",
+    "hi": "उपभोज्य सामग्री",
+    "en_plain": "Single-use medical supplies like gloves, syringes, and masks, which are paid only if your policy includes a consumables cover.",
+    "hi_plain": "दस्ताने, सिरिंज और मास्क जैसी एक बार उपयोग होने वाली चिकित्सीय सामग्री, जिसका भुगतान तभी होता है जब पॉलिसी में इसका कवर हो।"
+  },
+  {
+    "key": "day_care_procedure",
+    "en": "Day Care Procedure",
+    "hi": "डे-केयर प्रक्रिया",
+    "en_plain": "A covered medical procedure completed in less than 24 hours without needing an overnight hospital stay.",
+    "hi_plain": "ऐसी कवर की गई चिकित्सीय प्रक्रिया जो 24 घंटे से कम समय में पूरी हो जाती है और रात भर भर्ती रहने की जरूरत नहीं होती।"
+  },
+  {
+    "key": "domiciliary_hospitalisation",
+    "en": "Domiciliary Hospitalisation",
+    "hi": "गृह-आधारित उपचार",
+    "en_plain": "Hospital-level medical treatment taken at home because the patient cannot be moved or no hospital bed is available.",
+    "hi_plain": "घर पर लिया जाने वाला अस्पताल जैसा इलाज, जब मरीज को ले जाना संभव न हो या अस्पताल में बिस्तर उपलब्ध न हो।"
+  },
+  {
+    "key": "pre_hospitalisation",
+    "en": "Pre-hospitalisation Expenses",
+    "hi": "भर्ती-पूर्व खर्च",
+    "en_plain": "Doctor consultations, tests, and medicines paid for in the days just before a covered hospital admission.",
+    "hi_plain": "अस्पताल में भर्ती होने से ठीक पहले के तय दिनों में डॉक्टर की फीस, जांच और दवाइयों पर हुआ खर्च।"
+  },
+  {
+    "key": "post_hospitalisation",
+    "en": "Post-hospitalisation Expenses",
+    "hi": "भर्ती-पश्चात खर्च",
+    "en_plain": "Follow-up doctor visits, tests, and medicines needed during recovery in the days after hospital discharge.",
+    "hi_plain": "अस्पताल से छुट्टी मिलने के बाद तय दिनों में फॉलो-अप जांच, परामर्श और दवाइयों पर होने वाला खर्च।"
+  },
+  {
+    "key": "icd_10_code",
+    "en": "ICD-10 Diagnosis Code",
+    "hi": "आईसीडी-10 निदान कोड",
+    "en_plain": "An international medical code doctors use on insurance forms to identify your exact illness or injury.",
+    "hi_plain": "एक अंतरराष्ट्रीय चिकित्सीय कोड जिसका उपयोग डॉक्टर बीमा फॉर्म में आपकी सटीक बीमारी या चोट बताने के लिए करते हैं।"
+  },
+  {
+    "key": "pcs_code",
+    "en": "Procedure Code (ICD-10-PCS)",
+    "hi": "चिकित्सीय प्रक्रिया कोड",
+    "en_plain": "A standard code used by hospitals to identify the exact surgery or medical procedure performed.",
+    "hi_plain": "अस्पतालों द्वारा उपयोग किया जाने वाला मानक कोड जो किए गए सटीक ऑपरेशन या चिकित्सीय प्रक्रिया को दर्शाता है।"
+  },
+  {
+    "key": "discharge_summary",
+    "en": "Discharge Summary",
+    "hi": "छुट्टी का सारांश",
+    "en_plain": "The hospital's final medical report explaining why you were admitted, what treatment you received, and your recovery advice.",
+    "hi_plain": "अस्पताल की अंतिम मेडिकल रिपोर्ट जिसमें भर्ती का कारण, दिया गया इलाज और घर पर देखभाल की सलाह लिखी होती है।"
+  },
+  {
+    "key": "final_bill",
+    "en": "Final Hospital Bill",
+    "hi": "अंतिम अस्पताल बिल",
+    "en_plain": "The complete itemised bill issued at discharge showing every charge for rooms, doctors, tests, and medicines.",
+    "hi_plain": "छुट्टी के समय दिया जाने वाला पूरा विस्तृत बिल जिसमें कमरे, डॉक्टर, जांच और दवाइयों का हर खर्च दर्ज होता है।"
+  },
+  {
+    "key": "enhancement_request",
+    "en": "Enhancement Request",
+    "hi": "स्वीकृत राशि वृद्धि अनुरोध",
+    "en_plain": "A request sent by the hospital asking the insurer to increase the cashless approval when treatment costs rise.",
+    "hi_plain": "इलाज का खर्च बढ़ने पर अस्पताल द्वारा बीमा कंपनी को नकदी-रहित मंजूर राशि बढ़ाने के लिए भेजा गया अनुरोध।"
+  },
+  {
+    "key": "grievance_redressal",
+    "en": "Grievance Redressal",
+    "hi": "शिकायत निवारण",
+    "en_plain": "The formal process for challenging an unfair claim deduction, delay, or rejection with your insurer or IRDAI.",
+    "hi_plain": "दावे में अनुचित कटौती, देरी या अस्वीकृति के खिलाफ बीमा कंपनी या इरडा के पास शिकायत दर्ज करने की औपचारिक प्रक्रिया।"
+  },
+  {
+    "key": "insurance_ombudsman",
+    "en": "Insurance Ombudsman",
+    "hi": "बीमा लोकपाल",
+    "en_plain": "An independent government-backed authority that resolves health insurance disputes free of cost for policyholders.",
+    "hi_plain": "एक स्वतंत्र संस्था जो पॉलिसीधारकों के स्वास्थ्य बीमा विवादों का बिना किसी शुल्क के निपटारा करती है।"
+  },
+  {
+    "key": "portability",
+    "en": "Policy Portability",
+    "hi": "पॉलिसी स्थानांतरण",
+    "en_plain": "Your right to switch your health policy to another insurer without losing waiting period credits already served.",
+    "hi_plain": "पूरी हो चुकी प्रतीक्षा अवधि का लाभ खोए बिना अपनी स्वास्थ्य पॉलिसी को दूसरी बीमा कंपनी में बदलने का अधिकार।"
+  },
+  {
+    "key": "moratorium_period",
+    "en": "Moratorium Period",
+    "hi": "स्थगन अवधि",
+    "en_plain": "The continuous coverage period (60 months under IRDAI's 2024 rules) after which claims cannot be denied for non-disclosure except proven fraud.",
+    "hi_plain": "लगातार बीमा कवर की वह अवधि (2024 के नियमों में 60 महीने) जिसके बाद सिद्ध धोखाधड़ी को छोड़कर पुरानी जानकारी न देने पर दावा खारिज नहीं किया जा सकता।"
+  },
+  {
+    "key": "free_look_period",
+    "en": "Free-look Period",
+    "hi": "निःशुल्क समीक्षा अवधि",
+    "en_plain": "The initial window after receiving your policy when you can cancel it for a refund if you disagree with its terms.",
+    "hi_plain": "पॉलिसी मिलने के बाद का शुरुआती समय जब शर्तें पसंद न आने पर आप इसे रद्द कर पैसे वापस ले सकते हैं।"
+  },
+  {
+    "key": "grace_period",
+    "en": "Grace Period",
+    "hi": "अनुग्रह अवधि",
+    "en_plain": "Extra days allowed after your renewal due date to pay the premium without losing continuity benefits.",
+    "hi_plain": "नवीनीकरण की अंतिम तिथि के बाद प्रीमियम भरने के लिए मिलने वाले अतिरिक्त दिन, जिनसे पॉलिसी की निरंतरता बनी रहती है।"
+  },
+  {
+    "key": "exclusion",
+    "en": "Exclusion",
+    "hi": "अपवर्जन",
+    "en_plain": "A specific treatment, condition, or situation that your health insurance policy explicitly does not cover.",
+    "hi_plain": "कोई खास इलाज, बीमारी या स्थिति जिसे आपकी स्वास्थ्य बीमा पॉलिसी स्पष्ट रूप से कवर नहीं करती।"
+  },
+  {
+    "key": "medical_necessity",
+    "en": "Medical Necessity",
+    "hi": "चिकित्सीय आवश्यकता",
+    "en_plain": "Proof that a hospital admission or procedure was genuinely required to treat an illness or injury, not optional.",
+    "hi_plain": "यह प्रमाण कि बीमारी या चोट के इलाज के लिए अस्पताल में भर्ती होना या प्रक्रिया कराना वास्तव में जरूरी था, न कि वैकल्पिक।"
+  }
+]
