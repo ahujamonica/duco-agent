@@ -29,7 +29,7 @@
       "observation": "plan created",
       "checks": [],
       "decision": "run goals in dependency order",
-      "timestamp": "2026-11-26T11:38:55"
+      "timestamp": "2026-11-26T11:41:12"
     },
     {
       "index": 2,
@@ -43,7 +43,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:55"
+      "timestamp": "2026-11-26T11:41:12"
     },
     {
       "index": 3,
@@ -53,9 +53,9 @@
       "action": "OCR+parse priya_pt_invoice.png",
       "inputs": {
         "attempt": 1,
-        "variant": "clean"
+        "variant": "auto-layout"
       },
-      "observation": "score=0.99; checks=service_lines_found:pass, printed_total_read:pass, line_sum_reconciles:pass",
+      "observation": "score=0.98; checks=service_lines_found:pass, printed_total_read:pass, line_sum_reconciles:pass",
       "checks": [
         {
           "name": "service_lines_found",
@@ -74,22 +74,22 @@
         }
       ],
       "decision": "accept",
-      "timestamp": "2026-11-26T11:38:57"
+      "timestamp": "2026-11-26T11:41:14"
     },
     {
       "index": 4,
       "agent": "IntakeAgent",
       "state": "extracting",
-      "thought": "priya_pt_invoice.png: settled on the 'clean' pass (mean OCR confidence 91.1).",
+      "thought": "priya_pt_invoice.png: settled on the 'auto-layout' pass (mean OCR confidence 84.9).",
       "action": "ocr_extract",
       "inputs": {
         "file": "priya_pt_invoice.png",
-        "variant": "clean"
+        "variant": "auto-layout"
       },
       "observation": "3 service lines parsed; issues=[]",
       "checks": [],
       "decision": "accepted extraction",
-      "timestamp": "2026-11-26T11:38:57"
+      "timestamp": "2026-11-26T11:41:14"
     },
     {
       "index": 5,
@@ -99,7 +99,7 @@
       "action": "OCR+parse surgeon_estimate.jpg",
       "inputs": {
         "attempt": 1,
-        "variant": "clean"
+        "variant": "auto-layout"
       },
       "observation": "score=0.99; checks=cpt_lines_found:pass, printed_total_read:pass, line_sum_reconciles:pass",
       "checks": [
@@ -120,22 +120,22 @@
         }
       ],
       "decision": "accept",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 6,
       "agent": "IntakeAgent",
       "state": "extracting",
-      "thought": "surgeon_estimate.jpg: settled on the 'clean' pass (mean OCR confidence 92.5).",
+      "thought": "surgeon_estimate.jpg: settled on the 'auto-layout' pass (mean OCR confidence 95.0).",
       "action": "ocr_extract",
       "inputs": {
         "file": "surgeon_estimate.jpg",
-        "variant": "clean"
+        "variant": "auto-layout"
       },
       "observation": "2 service lines parsed; issues=[]",
       "checks": [],
       "decision": "accepted extraction",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 7,
@@ -160,7 +160,7 @@
         }
       ],
       "decision": "accepted",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 8,
@@ -180,7 +180,7 @@
         }
       ],
       "decision": "goals set from the transcript",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 9,
@@ -210,7 +210,7 @@
         }
       ],
       "decision": "use these codes on the claims and the pre-auth letters",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 10,
@@ -230,7 +230,7 @@
         }
       ],
       "decision": "codes confirmed against the catalogue",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 11,
@@ -241,7 +241,7 @@
       "inputs": {
         "source": "priya_pt_invoice.png"
       },
-      "observation": "Physical Therapy Evaluation -> 97161 (0.90); Therapeutic Exercise (Ultrasound + IFT) -> 97110 (0.90); Home traction equipment (sale) -> None (0.45)",
+      "observation": "ik Physical Therapy Evaluation -> 97161 (0.85); Therapeutic Exercise (Ultrasound + IFT) -> 97110 (0.90); Sj Home traction equipment (sale) -> None (0.42)",
       "checks": [
         {
           "name": "codes_inferred",
@@ -255,7 +255,7 @@
         }
       ],
       "decision": "inferred codes accepted; low-confidence ones flagged in the report",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 12,
@@ -278,7 +278,7 @@
         }
       ],
       "decision": "hand claims to the coverage agent",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 13,
@@ -292,7 +292,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 14,
@@ -306,7 +306,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 15,
@@ -343,7 +343,7 @@
         }
       ],
       "decision": "coverage verified; hand to the COB agent",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 16,
@@ -357,7 +357,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 17,
@@ -371,7 +371,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 18,
@@ -389,7 +389,7 @@
         }
       ],
       "decision": "ask the compliance agent to file pre-auth for the plans that need it",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 19,
@@ -403,7 +403,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 20,
@@ -417,7 +417,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 21,
@@ -454,7 +454,7 @@
         }
       ],
       "decision": "letter ready to send",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 22,
@@ -491,7 +491,7 @@
         }
       ],
       "decision": "letter ready to send",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 23,
@@ -512,7 +512,7 @@
         }
       ],
       "decision": "skip filing",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 24,
@@ -533,7 +533,7 @@
         }
       ],
       "decision": "skip filing",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 25,
@@ -547,7 +547,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 26,
@@ -561,7 +561,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 27,
@@ -576,7 +576,7 @@
       "observation": "primary=PLAN_B, secondary=PLAN_A",
       "checks": [],
       "decision": "secondary only sees the residual after the primary pays",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 28,
@@ -591,7 +591,7 @@
       "observation": "primary=PLAN_A, secondary=PLAN_B",
       "checks": [],
       "decision": "secondary only sees the residual after the primary pays",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 29,
@@ -634,7 +634,7 @@
         }
       ],
       "decision": "final numbers accepted",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 30,
@@ -648,7 +648,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 31,
@@ -662,7 +662,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:38:58"
+      "timestamp": "2026-11-26T11:41:15"
     },
     {
       "index": 32,
@@ -681,7 +681,7 @@
         {
           "name": "cost_flow_written",
           "passed": true,
-          "detail": "12698 bytes"
+          "detail": "12690 bytes"
         },
         {
           "name": "breakdown_written",
@@ -695,7 +695,7 @@
         }
       ],
       "decision": "delivered",
-      "timestamp": "2026-11-26T11:39:00"
+      "timestamp": "2026-11-26T11:41:18"
     },
     {
       "index": 33,
@@ -709,7 +709,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:39:00"
+      "timestamp": "2026-11-26T11:41:18"
     },
     {
       "index": 34,
@@ -723,7 +723,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:39:00"
+      "timestamp": "2026-11-26T11:41:18"
     },
     {
       "index": 35,
@@ -771,7 +771,7 @@
         }
       ],
       "decision": "ship",
-      "timestamp": "2026-11-26T11:39:00"
+      "timestamp": "2026-11-26T11:41:18"
     },
     {
       "index": 36,
@@ -785,7 +785,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:39:00"
+      "timestamp": "2026-11-26T11:41:18"
     }
   ]
 }
