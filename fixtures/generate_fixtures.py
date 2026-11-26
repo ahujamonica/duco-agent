@@ -41,7 +41,7 @@ def _paper(width: int, height: int, tone: int = 252) -> Image.Image:
     return image
 
 
-def _crumple(image: Image.Image, angle: float = -1.6) -> Image.Image:
+def _crumple(image: Image.Image, angle: float = -4.2) -> Image.Image:
     """Approximate a crumpled phone-scan: rotation, soft shading, grain, blur."""
     image = image.rotate(angle, expand=True, fillcolor=(250, 250, 248), resample=Image.BICUBIC)
     width, height = image.size
@@ -54,9 +54,9 @@ def _crumple(image: Image.Image, angle: float = -1.6) -> Image.Image:
             pixels[x, y] = value
     shading = Image.new("RGB", (width, height), (232, 230, 224))
     image = Image.composite(shading, image, overlay)
-    noise = Image.effect_noise((width, height), 9).convert("L").point(lambda v: 22 if v > 140 else 0)
+    noise = Image.effect_noise((width, height), 16).convert("L").point(lambda v: 26 if v > 132 else 0)
     image = Image.composite(Image.new("RGB", (width, height), (226, 224, 218)), image, noise)
-    return image.filter(ImageFilter.GaussianBlur(0.35))
+    return image.filter(ImageFilter.GaussianBlur(0.55))
 
 
 def build_invoice(path: Path) -> None:

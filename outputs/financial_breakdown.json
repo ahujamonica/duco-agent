@@ -162,7 +162,7 @@
         "claim_id": "CLM-2026-P-PT",
         "patient_name": "Priya Sen",
         "member_id": "SEN-P-001",
-        "provider_name": "Lakshmi Physiotherapy",
+        "provider_name": "unknown",
         "service_date": "2026-11-12",
         "total_billed": "30000.00",
         "document_refs": [
@@ -172,7 +172,7 @@
         "narrative": "Unpaid physiotherapy invoice for chronic low back pain; codes were missing from the bill and have been inferred.",
         "lines": [
           {
-            "description": "Physical Therapy Evaluation",
+            "description": "ik Physical Therapy Evaluation",
             "quantity": 1,
             "unit_rate": "3500.00",
             "billed_amount": "3500.00",
@@ -182,7 +182,7 @@
             ],
             "category": "therapy",
             "non_covered": false,
-            "code_confidence": 0.902,
+            "code_confidence": 0.852,
             "code_source": "inferred"
           },
           {
@@ -200,7 +200,7 @@
             "code_source": "inferred"
           },
           {
-            "description": "Home traction equipment (sale)",
+            "description": "Sj Home traction equipment (sale)",
             "quantity": 1,
             "unit_rate": "2500.00",
             "billed_amount": "2500.00",
@@ -210,7 +210,7 @@
             ],
             "category": "equipment",
             "non_covered": true,
-            "code_confidence": 0.449,
+            "code_confidence": 0.423,
             "code_source": "unavailable"
           }
         ]
@@ -232,7 +232,7 @@
         "notes": [],
         "lines": [
           {
-            "line_description": "Physical Therapy Evaluation",
+            "line_description": "ik Physical Therapy Evaluation",
             "cpt_code": "97161",
             "billed": "3500.00",
             "allowed": "3500.00",
@@ -260,7 +260,7 @@
             "notes": []
           },
           {
-            "line_description": "Home traction equipment (sale)",
+            "line_description": "Sj Home traction equipment (sale)",
             "cpt_code": null,
             "billed": "2500.00",
             "allowed": "0.00",
@@ -290,7 +290,7 @@
         "notes": [],
         "lines": [
           {
-            "line_description": "Physical Therapy Evaluation",
+            "line_description": "ik Physical Therapy Evaluation",
             "cpt_code": "97161",
             "billed": "3500.00",
             "allowed": "3500.00",
@@ -318,7 +318,7 @@
             "notes": []
           },
           {
-            "line_description": "Home traction equipment (sale)",
+            "line_description": "Sj Home traction equipment (sale)",
             "cpt_code": null,
             "billed": "2500.00",
             "allowed": "0.00",
