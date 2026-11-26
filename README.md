@@ -208,7 +208,7 @@ run_demo.py               original offline CLI scenario (still works)
 
 ### Data integrity decisions
 - Money is `Numeric(14,2)` in the database and `Decimal` in Python; no floats in the calculation path.
-- A re-run is idempotent: the accumulators consumed by the previous run of the same case are reversed before recalculating, including sub-limit usage. Running the main demo twice produces the same ₹29,180 patient share.
+- A re-run is idempotent: the accumulators consumed by the previous run of the same case are reversed before recalculating, including sub-limit usage. Running the main demo twice produces the same ₹22,430 patient share.
 - Per-member accumulators are keyed by `(policy_version, member)`. The policy schedule's "already used" amounts seed only the policyholder; dependants start at zero.
 - Every claim stores the plan result per line, so the UI and reports never recompute money from a different rule set.
 - The mock insurer claim endpoint runs the same engine for that policy so its response and the platform's calculation can be compared; both are labelled simulated.

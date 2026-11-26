@@ -74,18 +74,18 @@ function HeroPreview() {
         <div className="grid grid-cols-2 gap-px bg-line">
           <div className="bg-canvas px-5 py-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-ink-soft">{t("landing.previewPaid")}</p>
-            <p className="mt-0.5 text-[19px] font-bold tabular-nums text-navy">{inr(450820)}</p>
-            <p className="text-[10px] text-ink-soft">90% of the bill</p>
+            <p className="mt-0.5 text-[19px] font-bold tabular-nums text-navy">{inr(457570)}</p>
+            <p className="text-[10px] text-ink-soft">95% of the bill</p>
           </div>
           <div className="bg-canvas px-5 py-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-ink-soft">{t("landing.previewYou")}</p>
-            <p className="mt-0.5 text-[19px] font-bold tabular-nums text-navy">{inr(29180)}</p>
+            <p className="mt-0.5 text-[19px] font-bold tabular-nums text-navy">{inr(22430)}</p>
             <p className="text-[10px] text-ink-soft">explained line by line</p>
           </div>
         </div>
         <div className="px-5 py-3">
           <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-[90%] rounded-full bg-teal" />
+            <div className="h-full w-[95%] rounded-full bg-teal" />
           </div>
           <p className="mt-1.5 text-[10px] text-ink-soft">Two claims · two policies · one household</p>
         </div>

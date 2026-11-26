@@ -44,6 +44,10 @@ The offline CLI assessment is intact: generated fixtures, OCR retry loop, extrac
 ### Phase 10 — documentation
 - README, platform architecture, coordination rules with a worked example, security posture, QA evidence, Makefile, env example and demo seed script.
 
+### Phase 11 - independent engine review
+- An independent, adversarial review of the money engine found 13 ranked defects plus missing invariants; all are fixed with 17 regression tests. The strengthened checks cover per-line reconciliation, residual discipline for later plans, non-negative buckets, factor range, OOP/sum-insured ceilings, unique plan keys and penalties outside the OOP maximum.
+- Worked-example figures updated to the re-verified household split: Rs 4,57,570 insurers, Rs 22,430 patient.
+
 ### Known open items
 - Real insurer/TPA integration (mock only, clearly labelled).
 - Production security gaps documented in `docs/SECURITY.md`.

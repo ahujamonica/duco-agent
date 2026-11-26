@@ -29,16 +29,16 @@ For plan *k* in order:
 
 1. **Eligibility.** Policy status, service date within period, waiting period, member role, network (if network-only and provider out of network) → plan skipped, nothing changes.
 2. **Base.** Primary: billed. Later plan: the covered residual left by earlier plans, plus previously excluded amounts only if this plan sets `covers_primary_exclusions`.
-3. **Policy exclusion.** If the line matches this plan's exclusion, the whole base becomes patient liability for this plan; plan pays zero.
-4. **Sub-limit.** A matching sub-limit caps the eligible amount. The excess becomes patient liability. Usage is consumed by the allowed amount, separately per claim and across the benefit year.
-5. **Contractual rate.** `allowed × allowed_factor`; the difference is a write-off, not patient liability.
+3. **Policy exclusion.** If the line matches this plan's exclusion, the plan pays zero for the base it received. If this is the first plan to price the line, the base becomes part of the non-covered share and later plans see it only if they set `covers_primary_exclusions`. A **later** plan's exclusion applies to that plan alone: the residual is left for the plans after it.
+4. **Contractual rate.** Only the first plan to price the line applies `allowed × allowed_factor`; the difference is a write-off, not patient liability. A later plan takes the residual as its base and must not write any of it off again.
+5. **Sub-limit.** A matching sub-limit caps the allowed amount *after* the network discount, and only the allowed amount consumes it. The excess moves to the patient **and stays in the residual offered to the next plan**. A `per_year` cap accumulates across claims; a `per_claim` cap is consumed inside this claim only and its carried-over `used` is neither accumulated nor checked.
 6. **Deductible.** `min(remaining deductible, allowed)`.
 7. **Co-insurance.** `(allowed − deductible) × member_rate`; the plan pays the rest.
-8. **Pre-auth penalty.** If the plan requires pre-authorisation and the request is not approved, `plan_paid × penalty_rate` moves to the patient. Approved requests incur no penalty.
-9. **OOP maximum.** If the member's covered cost share exceeds the remaining OOP, the plan absorbs the excess (up to its allowed amount).
-10. **Annual limit.** If the plan payment exceeds the remaining annual limit, the excess moves to the patient and does **not** count toward the OOP maximum (the benefit is exhausted).
+8. **Pre-auth penalty.** If the plan requires pre-authorisation and the request is not approved, `plan_paid × penalty_rate` moves to the patient. Approved requests incur no penalty. The penalty sits **outside** the OOP maximum: it is never absorbed and never consumes it.
+9. **OOP maximum.** If the member's cost sharing (deductible + co-insurance) exceeds the remaining OOP, the plan absorbs the excess, never the penalty. A deductible the maximum pays does not consume the deductible.
+10. **Annual limit.** If the plan payment exceeds the remaining annual limit, the excess moves to the patient, does **not** count toward the OOP maximum (the benefit is exhausted), and stays in the residual for a later plan. When no annual limit is set, the sum insured is the yearly payment cap.
 
-Then the line's covered residual becomes `allowed − plan_paid`; the next plan sees it. Excluded/sub-limit amounts remain outside the residual unless the next plan explicitly covers primary exclusions.
+The residual the next plan sees is the patient share — deductible, co-insurance, penalty, sub-limit excess and annual-limit excess — plus, only when the next plan asks for it, the primary's excluded amount.
 
 ## 4. Totals
 
@@ -67,14 +67,15 @@ Every run checks:
 
 1. `insurer_paid + patient_liability + contractual_adjustment == billed`
 2. `excluded + allowed + contractual_adjustment == billed`
-3. `patient_liability == Σ line patient`
-4. every plan payment ≤ its allowed amount on that line
-5. a secondary payment ≤ the residual base it received
-6. deductible used ≤ deductible total
-7. annual limit used ≤ annual limit
-8. each sub-limit used ≤ its limit
-9. no negative amounts
-10. a pre-auth penalty is disclosed when it applies
+3. **every line reconciles on its own**: `Σ plan payments + patient + contractual_adjustment == line billed`
+4. `patient_liability == Σ line patient`
+5. every plan payment ≤ its allowed amount on that line
+6. a later plan's payment never exceeds the residual base it received, on every line
+7. deductible used ≤ deductible total; OOP used ≤ OOP maximum; paid to date ≤ annual limit and ≤ sum insured
+8. each `per_year` sub-limit used ≤ its limit (`per_claim` is excluded from the cumulative check)
+9. no negative amount: payments, buckets, contractual adjustments, excluded and totals
+10. `0 < allowed_factor ≤ 1` for every plan, and the payer order names each plan once
+11. a pre-auth penalty is charged in full, never reduced by the OOP maximum
 
 If any invariant fails, the Financial agent recalculates once, then holds the case for review instead of publishing a number.
 
@@ -95,9 +96,9 @@ Household: Priya and Aarav. Policies: ICICI Lombard (Priya policyholder; 5,000 d
 | Line | Billed | Primary ICICI | Secondary HDFC | Patient |
 | --- | ---: | ---: | ---: | ---: |
 | Evaluation 97161 | 3,500 | 0 (deductible) | 0 (deductible) | 3,500 |
-| Therapeutic exercise 97110 ×12 | 24,000 | 13,200 (16,500 after 7,500 sub-limit, 20% co-ins) | 1,620 | 9,180 |
+| Therapeutic exercise 97110 ×12 | 24,000 | 13,200 (16,500 after 7,500 sub-limit, 20% co-ins) | 8,370 | 2,430 (plus 7,500 sub-limit excess covered by HDFC) |
 | Home traction equipment | 2,500 | 0 (excluded) | 0 (excluded) | 2,500 |
-| **Total** | **30,000** | **13,200** | **1,620** | **15,180** |
+| **Total** | **30,000** | **13,200** | **8,370** | **8,430** |
 
 ### Aarav — ACL reconstruction, ₹4,50,000
 
@@ -111,15 +112,20 @@ Household: Priya and Aarav. Policies: ICICI Lombard (Priya policyholder; 5,000 d
 
 | Billed | Insurers | Patient | Contractual adjustment | Excluded |
 | ---: | ---: | ---: | ---: | ---: |
-| ₹4,80,000 | ₹4,50,820 | ₹29,180 | ₹0 | ₹2,500 |
+| ₹4,80,000 | ₹4,57,570 | ₹22,430 | ₹0 | ₹2,500 |
 
-The split is ₹4,13,200 primary + ₹37,620 secondary + ₹29,180 patient = ₹4,80,000. Two pre-authorisation requests were approved; the letters are generated for both insurers.
+The split is ₹4,13,200 primary + ₹44,370 secondary + ₹22,430 patient = ₹4,80,000. Two pre-authorisation requests were approved; the letters are generated for both insurers.
 
 ## 8. Modelling assumptions to disclose
 
 - Primary/secondary ordering is a modelling choice; a contribution clause can produce a different patient share.
 - The policy's “used this year” amounts seed the policyholder only; dependants start at zero unless their own accumulators exist.
-- Sub-limits are consumed by the allowed amount; an insurer may define consumption differently.
+- Sub-limits are consumed by the allowed amount (after the network discount); an insurer may define consumption differently.
+- Only the first plan to price a line sets the contractual rate; a later plan never re-prices the residual.
+- A sub-limit excess, like an annual-limit excess, stays in the residual for the next policy; the alternative (patient pays it outright) is a different, stricter reading.
+- A per-claim sub-limit is consumed within the claim only; its carried-over `used` is not accumulated across claims.
+- The pre-auth penalty sits outside the out-of-pocket maximum.
+- When a policy has no annual limit set, the sum insured is enforced as the yearly cap.
 - The network discount is applied before the deductible; real contracts may apply it differently.
 - Pre-authorisation pending is treated as not approved, so the policy penalty applies until approval.
 - A policy's annual limit is separate from its sum insured; both are stored and the annual limit is the one enforced.

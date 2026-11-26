@@ -400,6 +400,15 @@ def preauth_requirement(claim: ClaimInput, plan: InsurancePlan) -> tuple[bool, s
 
 _BUCKET_ORDER = ("deductible", "coinsurance", "preauth_penalty", "sub_limit", "benefit_limit", "excluded")
 
+def effective_annual_cap(plan: InsurancePlan) -> Decimal:
+    """The yearly payment ceiling: annual_limit, else the sum insured."""
+    cap = money(plan.annual_limit) if plan.annual_limit > 0 else ZERO
+    if plan.sum_insured > 0:
+        cap = money(plan.sum_insured) if cap == ZERO else money(min(cap, plan.sum_insured))
+    return cap
+
+
+
 
 def _absorb(buckets: dict[str, Decimal], amount: Decimal) -> Decimal:
     """Reduce patient buckets by ``amount``; return the amount absorbed."""
@@ -423,32 +432,82 @@ def adjudicate_claim(
     """Adjudicate one claim under an ordered list of plans (primary first)."""
     preauth_obtained = preauth_obtained or {}
     plan_by_key = {plan.key: plan for plan in plans}
-    ordered = [plan_by_key[d.plan_key] for d in sorted(order, key=lambda o: o.order) if d.plan_key in plan_by_key]
-    decisions = {d.plan_key: d for d in order}
 
     warnings: list[str] = []
+    assumptions: list[str] = []
+
+    # -- Input validation -------------------------------------------------
+    # Each of these would change the money if left alone, so none may pass
+    # silently: a repeated plan key pays twice, a factor outside (0, 1] pays
+    # more than the allowed amount, and a negative bill line makes the patient
+    # share negative.
+    duplicate_keys = sorted(
+        {key for key in (d.plan_key for d in order) if sum(1 for d in order if d.plan_key == key) > 1}
+    )
+    if duplicate_keys:
+        warnings.append(
+            "The payer order names "
+            + ", ".join(duplicate_keys)
+            + " more than once; only the first entry for each plan was applied."
+        )
+    seen_decisions: dict[str, OrderDecision] = {}
+    for decision in sorted(order, key=lambda o: o.order):
+        if decision.plan_key in seen_decisions or decision.plan_key not in plan_by_key:
+            continue
+        seen_decisions[decision.plan_key] = decision
+    ordered = [plan_by_key[key] for key in seen_decisions]
+    decisions = seen_decisions
+
+    factor_for: dict[str, Decimal] = {}
+    for plan in ordered:
+        if plan.allowed_factor <= 0 or plan.allowed_factor > 1:
+            warnings.append(
+                f"{plan.insurer}: allowed_factor {plan.allowed_factor} is outside (0, 1]; "
+                "this claim was priced with the full allowed amount."
+            )
+            factor_for[plan.key] = ONE
+        else:
+            factor_for[plan.key] = plan.allowed_factor
+
+    annual_cap: dict[str, Decimal] = {}
+    for plan in ordered:
+        annual_cap[plan.key] = effective_annual_cap(plan)
+        if plan.annual_limit <= 0 and plan.sum_insured > 0:
+            assumptions.append(
+                f"{plan.insurer}: no annual_limit is set, so the sum insured "
+                f"({money(plan.sum_insured)}) is used as the yearly payment cap."
+            )
+
     plan_results: list[PlanAdjudication] = []
 
     state: dict[str, dict] = {}
     for plan in ordered:
+        cap = annual_cap[plan.key]
         state[plan.key] = {
             "deductible_remaining": money(max(ZERO, plan.deductible_total - plan.deductible_used)),
             "deductible_applied": ZERO,
             "oop_remaining": money(max(ZERO, plan.oop_max - plan.oop_used)) if plan.oop_max > 0 else None,
             "oop_applied": ZERO,
-            "annual_remaining": money(max(ZERO, plan.annual_limit - plan.annual_limit_used))
-            if plan.annual_limit > 0
-            else None,
+            "annual_remaining": money(max(ZERO, cap - plan.annual_limit_used)) if cap > 0 else None,
             "annual_applied": ZERO,
             "sub_remaining": {sub.key: sub.remaining() for sub in plan.sublimits},
             "sub_applied": {sub.key: ZERO for sub in plan.sublimits},
         }
 
     output_lines: list[LineResult] = []
+    expected_penalty: dict[tuple[int, str], Decimal] = {}
 
     for line in claim.lines:
-        covered = money(line.billed)
-        noncovered = ZERO
+        billed = money(line.billed)
+        if billed < 0:
+            warnings.append(
+                f"Line {line.line_id} ({line.description}) has a negative billed amount "
+                f"({money(line.billed)}); it was treated as zero. Net a hospital discount into "
+                "the billed amount instead of posting it as a negative line."
+            )
+            billed = ZERO
+        covered = billed              # residual still offered to a later plan
+        primary_excluded = ZERO       # excluded by a plan; offered only on request
         contractual_line = ZERO
         paid_line = ZERO
         buckets = {key: ZERO for key in _BUCKET_ORDER}
@@ -491,8 +550,8 @@ def adjudicate_claim(
                 continue
 
             if plan.covers_primary_exclusions:
-                base = money(covered + noncovered)
-                noncovered = ZERO
+                base = money(covered + primary_excluded)
+                primary_excluded = ZERO
             else:
                 base = money(covered)
             if base <= 0:
@@ -515,15 +574,30 @@ def adjudicate_claim(
                         notes=[f"excluded: {exclusion_reason}"],
                     )
                 )
-                noncovered = money(noncovered + base)
-                covered = ZERO
+                # Only the plan that prices the line first can move it into
+                # the non-covered share. A later plan's exclusion applies to
+                # that plan alone and leaves the residual for the plans after
+                # it.
+                if not adjudicated:
+                    primary_excluded = money(primary_excluded + base)
+                    covered = ZERO
                 continue
 
-            sub = matching_sublimit(line, plan)
+            # The first plan to price the line sets the contractual rate. A
+            # later plan takes the earlier allowed amount as its base, so its
+            # own allowed_factor must not write off part of that residual.
+            allowed = money(base)
+            contractual = ZERO
+            if not adjudicated:
+                allowed = money(base * factor_for[plan.key])
+                contractual = money(base - allowed)
+
             sublimit_excess = ZERO
-            allowed = base
             note = ""
+            sub = matching_sublimit(line, plan)
             if sub is not None:
+                # The cap applies to the allowed amount (after a network
+                # discount) and consumes only what the plan actually allows.
                 remaining_sub = st["sub_remaining"].get(sub.key, ZERO)
                 if remaining_sub <= 0:
                     sublimit_excess = allowed
@@ -536,11 +610,8 @@ def adjudicate_claim(
                 else:
                     note = f"within the {sub.label} limit of {money(sub.limit)}"
                 st["sub_remaining"][sub.key] = money(max(ZERO, remaining_sub - allowed))
-                st["sub_applied"][sub.key] = money(st["sub_applied"].get(sub.key, ZERO) + allowed)
-
-            factor = plan.allowed_factor if plan.allowed_factor > 0 else ONE
-            contractual = money(allowed - (allowed * factor))
-            allowed = money(allowed * factor)
+                if sub.basis != "per_claim":
+                    st["sub_applied"][sub.key] = money(st["sub_applied"].get(sub.key, ZERO) + allowed)
 
             deductible = money(min(st["deductible_remaining"], allowed))
             st["deductible_remaining"] = money(st["deductible_remaining"] - deductible)
@@ -553,44 +624,43 @@ def adjudicate_claim(
             if needs_preauth and not preauth_obtained.get(plan.key, False) and plan_paid > 0:
                 penalty = money(plan_paid * plan.preauth_penalty_rate)
                 plan_paid = money(plan_paid - penalty)
+                expected_penalty[(line.line_id, plan.key)] = penalty
 
-            member_covered = money(deductible + coinsurance + penalty)
+            # The out-of-pocket maximum absorbs cost sharing only. A
+            # non-compliance penalty sits outside it: it is not absorbed and
+            # does not consume the maximum.
+            oop_share = money(deductible + coinsurance)
             oop_cap = ZERO
-            if st["oop_remaining"] is not None and member_covered > st["oop_remaining"]:
-                absorbable = money(min(member_covered - st["oop_remaining"], money(allowed - plan_paid)))
+            if st["oop_remaining"] is not None and oop_share > st["oop_remaining"]:
+                headroom = money(allowed - plan_paid - penalty)
+                absorbable = money(min(oop_share - st["oop_remaining"], headroom))
                 if absorbable > 0:
                     plan_paid = money(plan_paid + absorbable)
-                    # Attribute the absorption to coinsurance, then penalty, then deductible.
                     reduce = absorbable
-                    for attr in ("coinsurance", "penalty", "deductible"):
-                        if reduce <= 0:
-                            break
-                        value = {"coinsurance": coinsurance, "penalty": penalty, "deductible": deductible}[attr]
-                        take = money(min(value, reduce))
-                        if take <= 0:
-                            continue
-                        if attr == "coinsurance":
-                            coinsurance = money(coinsurance - take)
-                        elif attr == "penalty":
-                            penalty = money(penalty - take)
-                        else:
-                            deductible = money(deductible - take)
-                        reduce = money(reduce - take)
+                    coins_absorbed = money(min(coinsurance, reduce))
+                    coinsurance = money(coinsurance - coins_absorbed)
+                    reduce = money(reduce - coins_absorbed)
+                    if reduce > 0:
+                        ded_absorbed = money(min(deductible, reduce))
+                        deductible = money(deductible - ded_absorbed)
+                        # The maximum paying the deductible does not consume it.
+                        st["deductible_remaining"] = money(st["deductible_remaining"] + ded_absorbed)
                     oop_cap = absorbable
-                    member_covered = money(allowed - plan_paid)
+                    oop_share = money(deductible + coinsurance)
             if st["oop_remaining"] is not None:
-                st["oop_remaining"] = money(max(ZERO, st["oop_remaining"] - member_covered))
+                st["oop_remaining"] = money(max(ZERO, st["oop_remaining"] - oop_share))
 
             annual_excess = ZERO
             if st["annual_remaining"] is not None and plan_paid > st["annual_remaining"]:
                 annual_excess = money(plan_paid - st["annual_remaining"])
                 plan_paid = money(st["annual_remaining"])
-                member_covered = money(member_covered + annual_excess)
             if st["annual_remaining"] is not None:
                 st["annual_remaining"] = money(max(ZERO, st["annual_remaining"] - plan_paid))
 
+            member_covered = money(oop_share + penalty + annual_excess)
+
             st["deductible_applied"] = money(st["deductible_applied"] + deductible)
-            st["oop_applied"] = money(st["oop_applied"] + member_covered)
+            st["oop_applied"] = money(st["oop_applied"] + oop_share)
             st["annual_applied"] = money(st["annual_applied"] + plan_paid)
 
             plan_lines.append(
@@ -639,7 +709,7 @@ def adjudicate_claim(
 
             # The first payer establishes the patient's charges. A later payer
             # adjudicates the same residual, so its deductible/coinsurance are a
-            # breakdown of that residual — not additional charges. Only its
+            # breakdown of that residual - not additional charges. Only its
             # payment reduces the earlier buckets.
             if not adjudicated:
                 buckets["deductible"] = money(buckets["deductible"] + deductible)
@@ -650,24 +720,25 @@ def adjudicate_claim(
             elif plan_paid > 0:
                 _absorb(buckets, plan_paid)
 
-            covered = money(member_covered)
-            noncovered = money(noncovered + sublimit_excess) if not plan.covers_primary_exclusions else money(
-                sublimit_excess
-            )
+            # Everything the plan did not pay - including a sub-limit or
+            # annual-limit excess - stays available to the next plan.
+            covered = money(member_covered + sublimit_excess)
             contractual_line = money(contractual_line + contractual)
             paid_line = money(paid_line + plan_paid)
             adjudicated = True
 
-        patient = money(covered + noncovered)
+        patient = money(covered + primary_excluded)
         # The residual that no plan adjudicated is the excluded/uncovered share.
         known = money(sum(buckets.values(), ZERO))
         residual = money(patient - known)
         if residual > 0:
             buckets["excluded"] = money(buckets["excluded"] + residual)
         elif residual < 0:
-            # A later plan paid more than the tracked charge buckets: correct
-            # the decomposition rather than hiding the difference.
-            buckets["uncovered"] = money(buckets.get("uncovered", ZERO) + residual)
+            warnings.append(
+                f"Line {line.line_id}: the patient share is {money(-residual)} below its own breakdown; "
+                "the bill reconciliation check below records this."
+            )
+            buckets["excluded"] = money(max(ZERO, buckets["excluded"] + residual))
         patient = money(sum(buckets.values(), ZERO))
 
         line_notes = []
@@ -678,8 +749,7 @@ def adjudicate_claim(
         if any(p.annual_limit_excess > 0 for p in plan_lines):
             line_notes.append("a plan's annual limit was reached")
 
-        billed = money(line.billed)
-        excluded_patient = money(buckets.get("excluded", ZERO) + buckets.get("uncovered", ZERO))
+        excluded_patient = money(buckets.get("excluded", ZERO))
         output_lines.append(
             LineResult(
                 line_id=line.line_id,
@@ -771,6 +841,28 @@ def adjudicate_claim(
         f"{money(paid_total)} paid + {money(patient_total)} patient + {money(contractual_total)} adjustments "
         f"= {money(paid_total + patient_total + contractual_total)} vs billed {money(billed_total)}",
     )
+
+    # Per line, not only in total: an error on one line must not hide inside a
+    # compensating error on another.
+    line_issues = []
+    for line in output_lines:
+        line_paid = money(sum((p.plan_paid for p in line.plans), ZERO))
+        if money(line_paid + line.patient + line.contractual) != line.billed:
+            line_issues.append(
+                f"line {line.line_id}: paid {money(line_paid)} + patient {money(line.patient)} + "
+                f"adjustments {money(line.contractual)} = {money(line_paid + line.patient + line.contractual)} "
+                f"vs billed {money(line.billed)}"
+            )
+        if line.allowed < 0 or line.excluded < 0 or line.contractual < 0 or line.patient < 0:
+            line_issues.append(f"line {line.line_id}: a negative total ({money(line.allowed)}/{money(line.excluded)})")
+        for key, value in line.patient_parts.items():
+            if value < 0:
+                line_issues.append(f"line {line.line_id}: negative {key} bucket ({money(value)})")
+    check(
+        "Every line reconciles",
+        not line_issues,
+        "; ".join(line_issues[:3]) if line_issues else "every line's payments, patient share and adjustments equal its bill",
+    )
     check(
         "Allowed amount reconciles",
         money(excluded_total + totals["allowed"] + contractual_total) == billed_total,
@@ -782,28 +874,60 @@ def adjudicate_claim(
         money(sum((line.patient for line in output_lines), ZERO)) == patient_total,
         f"lines total {money(patient_total)}",
     )
+    check(
+        "Plan order names each plan once",
+        not duplicate_keys,
+        "each plan appears once" if not duplicate_keys else f"repeated: {', '.join(duplicate_keys)}",
+    )
+    bad_factors = [f"{plan.key}={plan.allowed_factor}" for plan in ordered if not (0 < plan.allowed_factor <= 1)]
+    check(
+        "Allowed factors are within (0, 1]",
+        not bad_factors,
+        "all factors are valid" if not bad_factors else f"outside the range: {', '.join(bad_factors)}",
+    )
+
+    # A later plan must take the previous plan's residual as its base and can
+    # never pay more than it, on any line.
+    residual_issues = []
+    for index, plan_result in enumerate(plan_results):
+        for line_result in plan_result.lines:
+            if line_result.base < 0:
+                residual_issues.append(f"{plan_result.plan_key} line {line_result.plan_key}: negative base")
+            if index > 0 and line_result.plan_paid > line_result.base:
+                residual_issues.append(
+                    f"{plan_result.plan_key}: paid {money(line_result.plan_paid)} above its base "
+                    f"{money(line_result.base)}"
+                )
+    check(
+        "A later plan never pays above its residual",
+        not residual_issues,
+        "; ".join(residual_issues[:3]) if residual_issues else "every later plan's payment is within its base",
+    )
     for plan_result in plan_results:
-        if plan_result.role != "primary" and plan_result.plan_paid > 0:
-            balance = money(sum((l.base for l in plan_result.lines), ZERO))
-            check(
-                f"{plan_result.insurer}: secondary does not duplicate the primary",
-                plan_result.plan_paid <= balance,
-                f"secondary paid {money(plan_result.plan_paid)} against a residual of {money(balance)}",
-            )
         over = [l for l in plan_result.lines if l.plan_paid > l.allowed]
         check(
             f"{plan_result.insurer}: no payment above the allowed amount",
             not over,
             "all line payments are within the allowed amount" if not over else f"{len(over)} line(s) exceed allowed",
         )
-        if plan_result.preauth_required:
-            state_key = plan_result.plan_key
-            if not preauth_obtained.get(state_key, False) and plan_result.penalty_total > 0:
-                check(
-                    f"{plan_result.insurer}: pre-authorisation penalty disclosed",
-                    True,
-                    f"payment reduced by {money(plan_result.penalty_total)} because pre-authorisation was not approved",
-                )
+        if plan_result.preauth_required and not preauth_obtained.get(plan_result.plan_key, False):
+            check(
+                f"{plan_result.insurer}: pre-authorisation penalty disclosed",
+                True,
+                f"payment reduced by {money(plan_result.penalty_total)} because pre-authorisation was not approved",
+            )
+    penalty_leaks = [
+        f"line {line_result.line_id}/{plan_line.plan_key}: {money(plan_line.penalty)} vs {money(expected_penalty[(line_result.line_id, plan_line.plan_key)])}"
+        for line_result in output_lines
+        for plan_line in line_result.plans
+        if (line_result.line_id, plan_line.plan_key) in expected_penalty
+        and plan_line.penalty != expected_penalty[(line_result.line_id, plan_line.plan_key)]
+    ]
+    check(
+        "Pre-authorisation penalties are not reduced by the out-of-pocket maximum",
+        not penalty_leaks,
+        "; ".join(penalty_leaks[:3]) if penalty_leaks else "every penalty is charged in full",
+    )
     for plan in ordered:
         st = state[plan.key]
         if plan.deductible_total > 0:
@@ -813,14 +937,32 @@ def adjudicate_claim(
                 used <= plan.deductible_total,
                 f"used {money(used)} of {money(plan.deductible_total)}",
             )
-        if plan.annual_limit > 0:
+        if plan.oop_max > 0:
+            used = money(plan.oop_used + st["oop_applied"])
+            check(
+                f"{plan.insurer}: out-of-pocket maximum respected",
+                used <= plan.oop_max,
+                f"used {money(used)} of {money(plan.oop_max)}",
+            )
+        if annual_cap[plan.key] > 0:
             used = money(plan.annual_limit_used + st["annual_applied"])
             check(
                 f"{plan.insurer}: annual limit respected",
-                used <= plan.annual_limit,
-                f"paid to date {money(used)} of {money(plan.annual_limit)}",
+                used <= annual_cap[plan.key],
+                f"paid to date {money(used)} of {money(annual_cap[plan.key])}",
+            )
+        if plan.sum_insured > 0:
+            used = money(plan.annual_limit_used + st["annual_applied"])
+            check(
+                f"{plan.insurer}: payments within the sum insured",
+                used <= plan.sum_insured,
+                f"paid to date {money(used)} of {money(plan.sum_insured)}",
             )
         for sub in plan.sublimits:
+            if sub.basis == "per_claim":
+                # A per-claim cap is consumed inside this claim only; its
+                # carried-over `used` must not be accumulated or tested.
+                continue
             used = money(sub.used + st["sub_applied"].get(sub.key, ZERO))
             check(
                 f"{plan.insurer}: {sub.label} sub-limit respected",
@@ -831,9 +973,15 @@ def adjudicate_claim(
         (line.line_id, p.plan_key)
         for line in output_lines
         for p in line.plans
-        if p.plan_paid < 0 or p.member_total < 0 or p.allowed < 0
-    ] + [(line.line_id, "patient") for line in output_lines if line.patient < 0]
-    check("No negative amounts", not negative, "every amount is zero or positive" if not negative else str(negative))
+        if p.plan_paid < 0 or p.member_total < 0 or p.allowed < 0 or p.contractual < 0
+    ] + [
+        (line.line_id, "patient")
+        for line in output_lines
+        if line.patient < 0 or line.patient_parts and min(line.patient_parts.values(), default=ZERO) < 0
+    ]
+    if contractual_total < 0 or excluded_total < 0 or totals["allowed"] < 0:
+        negative.append((0, "totals"))
+    check("No negative amounts", not negative, "every amount is zero or positive" if not negative else str(negative[:5]))
 
     accumulators = {}
     for plan in ordered:
@@ -848,7 +996,14 @@ def adjudicate_claim(
                 sub.key: {
                     "label": sub.label,
                     "limit": str(money(sub.limit)),
-                    "used": str(money(sub.used + st["sub_applied"].get(sub.key, ZERO))),
+                    "basis": sub.basis,
+                    "used": str(
+                        money(
+                            sub.used
+                            if sub.basis == "per_claim"
+                            else sub.used + st["sub_applied"].get(sub.key, ZERO)
+                        )
+                    ),
                 }
                 for sub in plan.sublimits
             },
@@ -865,7 +1020,7 @@ def adjudicate_claim(
         totals=totals,
         invariants=invariants,
         warnings=warnings,
-        assumptions=[],
+        assumptions=assumptions,
         accumulators=accumulators,
         plan_state=state,
     )
@@ -876,7 +1031,5 @@ def primary_only_totals(result: ClaimResult) -> dict[str, Decimal]:
     primary = next((p for p in result.plans if p.role == "primary"), None)
     if primary is None:
         return {"insurer_paid": ZERO, "patient_liability": result.totals["billed"]}
-    patient = money(
-        result.totals["billed"] - primary.plan_paid - result.totals["contractual_adjustment"]
-    )
+    patient = money(result.totals["billed"] - primary.plan_paid - primary.contractual_total)
     return {"insurer_paid": primary.plan_paid, "patient_liability": patient}

@@ -86,8 +86,8 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
             <div className="mt-3 space-y-2.5">
               {[
                 { label: "Billed", width: "100%", color: "bg-white/30", amount: "₹4,80,000" },
-                { label: "Insurers", width: "94%", color: "bg-teal", amount: "₹4,50,820" },
-                { label: "You", width: "6%", color: "bg-amber", amount: "₹29,180" },
+                { label: "Insurers", width: "95%", color: "bg-teal", amount: "₹4,57,570" },
+                { label: "You", width: "5%", color: "bg-amber", amount: "₹22,430" },
               ].map((row) => (
                 <div key={row.label} className="grid grid-cols-[54px_1fr_64px] items-center gap-2 text-[10.5px]">
                   <span className="text-white/45">{row.label}</span>

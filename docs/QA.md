@@ -27,6 +27,27 @@ Latest run in this workspace: **40 passed** (engine, extraction, API, workflow, 
 | Edge cases | inactive policy kept but unpaid, duplicate upload, missing diagnosis, unknown codes |
 | Code resolution | CPT/ICD candidates with confidence |
 
+## Independent money-engine review
+
+The coordination engine was reviewed independently, adversarially, before release. Every defect found is fixed and covered by a regression test in `tests/test_coordination_defects.py` (17 tests):
+
+- rounding a network discount no longer breaks the bill reconciliation (round `allowed` once, derive `contractual`);
+- a sub-limit excess is offered to the next plan, and the cap applies to the allowed amount after the discount;
+- an exclusion on a middle plan no longer wipes the residual for later plans;
+- a later plan's `allowed_factor` is not applied to a residual the primary already priced;
+- the sum insured is enforced as the yearly cap when `annual_limit` is unset;
+- the pre-auth penalty is outside the out-of-pocket maximum and does not consume it;
+- the OOP accumulator excludes annual-limit excess;
+- a per-claim sub-limit is neither accumulated nor cross-checked;
+- a duplicate plan key in the payer order pays once and fails its check;
+- exclusion keywords match whole words only;
+- `primary_only_totals` uses the primary's own contractual write-off;
+- negative bill lines and factors outside (0, 1] are flagged;
+- OOP absorption keeps the deductible accumulator consistent;
+- adding a plan never raises patient liability (monotonicity).
+
+The invariants were strengthened accordingly: per-line reconciliation, `plan_paid ≤ base` for every later plan, non-negative buckets and totals, unique plan keys, factor range, OOP/annual/sum-insured ceilings, and penalties charged in full.
+
 ## Manual acceptance scenario
 
 1. `make demo` and open <http://127.0.0.1:8000>.
