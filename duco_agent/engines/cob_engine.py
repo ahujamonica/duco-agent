@@ -17,8 +17,6 @@ Rules implemented (documented in ``docs/COB_RULES.md``):
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 from ..config import ACCUMULATORS, PLANS
 from ..models import (
     Adjudication,

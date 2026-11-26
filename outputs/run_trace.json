@@ -29,7 +29,7 @@
       "observation": "plan created",
       "checks": [],
       "decision": "run goals in dependency order",
-      "timestamp": "2026-11-26T11:24:53"
+      "timestamp": "2026-11-26T11:38:31"
     },
     {
       "index": 2,
@@ -43,7 +43,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:53"
+      "timestamp": "2026-11-26T11:38:31"
     },
     {
       "index": 3,
@@ -74,7 +74,7 @@
         }
       ],
       "decision": "accept",
-      "timestamp": "2026-11-26T11:24:54"
+      "timestamp": "2026-11-26T11:38:33"
     },
     {
       "index": 4,
@@ -89,7 +89,7 @@
       "observation": "3 service lines parsed; issues=[]",
       "checks": [],
       "decision": "accepted extraction",
-      "timestamp": "2026-11-26T11:24:54"
+      "timestamp": "2026-11-26T11:38:33"
     },
     {
       "index": 5,
@@ -120,7 +120,7 @@
         }
       ],
       "decision": "accept",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 6,
@@ -135,7 +135,7 @@
       "observation": "2 service lines parsed; issues=[]",
       "checks": [],
       "decision": "accepted extraction",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 7,
@@ -160,7 +160,7 @@
         }
       ],
       "decision": "accepted",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 8,
@@ -180,7 +180,7 @@
         }
       ],
       "decision": "goals set from the transcript",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 9,
@@ -210,7 +210,7 @@
         }
       ],
       "decision": "use these codes on the claims and the pre-auth letters",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 10,
@@ -230,7 +230,7 @@
         }
       ],
       "decision": "codes confirmed against the catalogue",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 11,
@@ -255,7 +255,7 @@
         }
       ],
       "decision": "inferred codes accepted; low-confidence ones flagged in the report",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 12,
@@ -278,7 +278,7 @@
         }
       ],
       "decision": "hand claims to the coverage agent",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 13,
@@ -292,7 +292,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 14,
@@ -306,7 +306,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 15,
@@ -343,7 +343,7 @@
         }
       ],
       "decision": "coverage verified; hand to the COB agent",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 16,
@@ -357,7 +357,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 17,
@@ -371,7 +371,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 18,
@@ -389,7 +389,7 @@
         }
       ],
       "decision": "ask the compliance agent to file pre-auth for the plans that need it",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 19,
@@ -403,7 +403,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 20,
@@ -417,7 +417,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 21,
@@ -454,7 +454,7 @@
         }
       ],
       "decision": "letter ready to send",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 22,
@@ -491,7 +491,7 @@
         }
       ],
       "decision": "letter ready to send",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 23,
@@ -512,7 +512,7 @@
         }
       ],
       "decision": "skip filing",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 24,
@@ -533,7 +533,7 @@
         }
       ],
       "decision": "skip filing",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 25,
@@ -547,7 +547,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 26,
@@ -561,7 +561,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 27,
@@ -576,7 +576,7 @@
       "observation": "primary=PLAN_B, secondary=PLAN_A",
       "checks": [],
       "decision": "secondary only sees the residual after the primary pays",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 28,
@@ -591,7 +591,7 @@
       "observation": "primary=PLAN_A, secondary=PLAN_B",
       "checks": [],
       "decision": "secondary only sees the residual after the primary pays",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 29,
@@ -634,7 +634,7 @@
         }
       ],
       "decision": "final numbers accepted",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 30,
@@ -648,7 +648,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 31,
@@ -662,7 +662,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:55"
+      "timestamp": "2026-11-26T11:38:34"
     },
     {
       "index": 32,
@@ -695,7 +695,7 @@
         }
       ],
       "decision": "delivered",
-      "timestamp": "2026-11-26T11:24:58"
+      "timestamp": "2026-11-26T11:38:37"
     },
     {
       "index": 33,
@@ -709,7 +709,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:58"
+      "timestamp": "2026-11-26T11:38:37"
     },
     {
       "index": 34,
@@ -723,7 +723,7 @@
       "observation": "",
       "checks": [],
       "decision": "",
-      "timestamp": "2026-11-26T11:24:58"
+      "timestamp": "2026-11-26T11:38:37"
     },
     {
       "index": 35,
@@ -771,7 +771,7 @@
         }
       ],
       "decision": "ship",
-      "timestamp": "2026-11-26T11:24:58"
+      "timestamp": "2026-11-26T11:38:37"
     },
     {
       "index": 36,
@@ -785,7 +785,7 @@
       "observation": "",
       "checks": [],
       "decision": "mark done",
-      "timestamp": "2026-11-26T11:24:58"
+      "timestamp": "2026-11-26T11:38:37"
     }
   ]
 }

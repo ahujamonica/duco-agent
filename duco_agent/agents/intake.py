@@ -13,8 +13,8 @@ from datetime import datetime
 from pathlib import Path
 
 from .. import codes, extraction
-from ..config import DEMO_OUTPUT_DIR, DOCUMENTS, SERVICE_DATE_SURGERY, SERVICE_DATE_THERAPY
-from ..models import Claim, DocumentKind, LineCategory, ServiceLine, money
+from ..config import SERVICE_DATE_SURGERY, SERVICE_DATE_THERAPY
+from ..models import Claim, LineCategory, ServiceLine
 from ..tools.ocr import VARIANTS, run_ocr
 from ..tools.pdf import extract_pdf_text
 from .base import AgentBase, Attempt, CheckResult
