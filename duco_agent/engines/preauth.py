@@ -101,10 +101,11 @@ def build_letter(claim: Claim, plan: PlanTerms, reference: str, role: str, diagn
         author="DuCO-Agent",
     )
     story = [
-        Paragraph(f"PRE-AUTHORISATION REQUEST &nbsp;|&nbsp; {plan.insurer_name} - {plan.plan_name}", styles["title"]),
+        Paragraph("PRE-AUTHORISATION REQUEST", styles["title"]),
+        Paragraph(f"{plan.insurer_name} &nbsp;·&nbsp; {plan.plan_name}", styles["subtitle"]),
         Paragraph(
             f"Reference {reference} &nbsp;&nbsp; Request date {letter.request_date.strftime('%d %B %Y')} &nbsp;&nbsp; "
-            f"Plan {plan.plan_id} &nbsp;&nbsp; Policy year 2026",
+            f"Policy year 2026",
             styles["subtitle"],
         ),
         Paragraph("1. Member and policy", styles["h2"]),
