@@ -271,12 +271,18 @@ class ReportingAgent(AgentBase):
         artifacts: dict[str, str] = {}
         warnings: list[str] = []
 
+        def rel(path: Path) -> str:
+            try:
+                return str(path.relative_to(output_dir.parent))
+            except ValueError:
+                return str(path)
+
         html_path = output_dir / "cost_flow.html"
         html_path.write_text(
             build_cost_flow_html(claims, outcomes, preauth_records, issues, preauth_gap=preauth_gap, agent_checks=agent_checks),
             encoding="utf-8",
         )
-        artifacts["cost_flow"] = str(html_path)
+        artifacts["cost_flow"] = rel(html_path)
 
         breakdown = {
             "generated_at": date.today().isoformat(),
@@ -291,15 +297,15 @@ class ReportingAgent(AgentBase):
         }
         breakdown_path = output_dir / "financial_breakdown.json"
         breakdown_path.write_text(json.dumps(breakdown, indent=2), encoding="utf-8")
-        artifacts["json"] = str(breakdown_path)
+        artifacts["json"] = rel(breakdown_path)
 
         script = build_audio_script(claims, outcomes)
         script_path = output_dir / "briefing_script.txt"
         script_path.write_text(script + "\n", encoding="utf-8")
-        artifacts["script"] = str(script_path)
+        artifacts["script"] = rel(script_path)
         produced, reason = synthesize_audio(script, output_dir / "briefing.mp3")
         if produced:
-            artifacts["audio"] = str(output_dir / "briefing.mp3" if (output_dir / "briefing.mp3").exists() else output_dir / "briefing.wav")
+            artifacts["audio"] = rel(output_dir / "briefing.mp3" if (output_dir / "briefing.mp3").exists() else output_dir / "briefing.wav")
         else:
             warnings.append(reason)
 

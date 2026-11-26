@@ -181,8 +181,15 @@ class Orchestrator:
         trace_path = self.output_dir / "run_trace.json"
         self.trace.save(trace_path)
         artifacts = dict(report.artifacts)
-        artifacts["trace"] = str(trace_path)
-        artifacts["preauth_letters"] = str(self.output_dir / "preauth_letters")
+
+        def rel(path: Path) -> str:
+            try:
+                return str(path.relative_to(self.output_dir.parent))
+            except ValueError:
+                return str(path)
+
+        artifacts["trace"] = rel(trace_path)
+        artifacts["preauth_letters"] = rel(self.output_dir / "preauth_letters")
         warnings = list(intake.issues) + list(coverage.warnings) + list(compliance.warnings) + list(cob.warnings) + list(report.warnings)
 
         checks: list[dict] = []
@@ -199,7 +206,7 @@ class Orchestrator:
             checks=checks,
         )
         summary_path = self.output_dir / "run_summary.json"
-        artifacts["summary"] = str(summary_path)
+        artifacts["summary"] = rel(summary_path)
         summary_path.write_text(json.dumps({**result.summary(), "artifacts": artifacts}, indent=2), encoding="utf-8")
         return result
 
