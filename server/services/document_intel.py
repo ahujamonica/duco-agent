@@ -25,6 +25,7 @@ import re
 import uuid
 from dataclasses import dataclass, field as dc_field
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,22 @@ class UnsupportedFile(ValueError):
 MONEY_RE = re.compile(
     r"(?:₹|Rs\.?|INR)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)"
     r"|(?<![\d.])([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?|[0-9]+\.[0-9]{2})(?![\d.])"
+)
+SUMMARY_LINE_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:grand\s+total|sub\s*total|invoice\s+total|total\s+(?:amount|payable|due)|"
+    r"net\s+(?:amount|payable)|amount\s+(?:payable|due|paid|received)|"
+    r"outstanding\s+(?:balance|amount)|balance\s+due|"
+    r"payments?(?:\s+received)?|paid(?:\s+to\s+date)?|"
+    r"(?:cgst|sgst|igst|gst|vat|tax(?:es)?)|discount|adjustment|"
+    r"invoice\s+summary|bill\s+summary|"
+    r"(?:bill|invoice)\s+(?:no|number|#)))\b",
+    re.IGNORECASE,
+)
+SUMMARY_TOTAL_RE = re.compile(
+    r"^\s*(?:grand\s+total|sub\s*total|invoice\s+total|total)\s*"
+    r"(?::|-)?\s*(?:(?:₹|Rs\.?|INR)\s*)?\d",
+    re.IGNORECASE,
 )
 DATE_RE = re.compile(
     r"\b([0-3]?\d[/-][01]?\d[/-](?:20)?\d{2}|20\d{2}-[01]\d-[0-3]\d|"
@@ -338,19 +355,19 @@ def parse_amount(raw: str | None) -> str | None:
         return None
     cleaned = raw.replace(",", "").replace("₹", "").replace("Rs.", "").replace("Rs", "").replace("INR", "").strip()
     try:
-        value = float(cleaned)
-    except ValueError:
+        value = Decimal(cleaned)
+    except InvalidOperation:
         return None
-    if value <= 0:
+    if not value.is_finite() or value <= 0:
         return None
-    return f"{value:.2f}"
+    return f"{value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
 
 
 def amounts_in(line: str) -> list[str]:
     found: list[str] = []
     for first, second in MONEY_RE.findall(line):
         value = parse_amount(first or second)
-        if value and value not in found:
+        if value:
             found.append(value)
     return found
 
@@ -386,7 +403,10 @@ def _confidence_for(source: str, base: float, ocr_conf: float | None, derived: b
 
 def _labelled_amount(text: str, labels: list[str], ocr: float | None, source: str) -> FieldValue:
     for label in labels:
-        pattern = re.compile(rf"{label}[^\n\r:]{{0,30}}[:\-]?\s*([^\n\r]{{0,80}})", re.IGNORECASE)
+        pattern = re.compile(
+            rf"(?<!\w){re.escape(label)}(?!\w)[^\n\r:]{{0,30}}[:\-]?\s*([^\n\r]{{0,80}})",
+            re.IGNORECASE,
+        )
         match = pattern.search(text)
         if match:
             amounts = amounts_in(match.group(0))
@@ -456,12 +476,14 @@ def _categorise(description: str, cpt: str | None) -> str:
 def _service_lines(text: str, source: str, ocr: float | None) -> tuple[list[ParsedLine], list[str]]:
     lines: list[ParsedLine] = []
     issues: list[str] = []
-    total_words = ("total", "sub total", "subtotal", "amount payable", "balance due", "grand total", "net payable")
+    has_quantity_column = bool(
+        re.search(r"\b(?:qty|quantity)\b[^\n]{0,80}\b(?:rate|amount)\b", text, re.IGNORECASE)
+    )
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line or len(line) < 4:
             continue
-        if any(word in line.lower() for word in total_words):
+        if SUMMARY_LINE_RE.match(line) or SUMMARY_TOTAL_RE.match(line):
             continue
         money = amounts_in(line)
         if not money:
@@ -471,7 +493,8 @@ def _service_lines(text: str, source: str, ocr: float | None) -> tuple[list[Pars
         first_money_match = MONEY_RE.search(line)
         if not first_money_match:
             continue
-        description = line[: first_money_match.start()].strip(" -|:.,")
+        prefix = line[: first_money_match.start()]
+        description = prefix.strip(" -|:.,")
         description = re.sub(r"^\s*(?:\d{1,2}[\).:]?|sr\.?)\s+", "", description, flags=re.IGNORECASE)
         # Scanned tables leave one- or two-character crumbs at the start.
         description = re.sub(r"^[A-Za-z]{1,2}[\s|]+(?=[A-Z])", "", description).strip()
@@ -481,43 +504,34 @@ def _service_lines(text: str, source: str, ocr: float | None) -> tuple[list[Pars
         parsed = ParsedLine(description=description[:180], evidence=line[:300])
         printed_cpt, printed_icd = _find_codes(line)
         printed_in_desc = CPT_RE.findall(description)
-        qty = None
-        rate = None
         amount = money[-1]
-        if len(money) >= 3:
-            rate = money[-3]
-            qty = money[-2]
+        quantity_match = re.search(r"\b(?:qty|quantity)\s*[:=]?\s*(\d+)\b", line, re.IGNORECASE)
+        if not quantity_match and has_quantity_column:
+            quantity_match = re.search(r"(?<!\w)(\d+)\s*$", prefix)
+        explicit_quantity = int(quantity_match.group(1)) if quantity_match else None
+        if len(money) >= 3 or (explicit_quantity is not None and len(money) >= 2):
             try:
-                quantity = int(float(qty))
-                if quantity > 0 and abs(float(rate) * quantity - float(amount)) <= 1:
+                quantity_value = Decimal(explicit_quantity) if explicit_quantity is not None else Decimal(money[-2])
+                rate_value = Decimal(money[-2] if explicit_quantity is not None else money[-3])
+                amount_value = Decimal(amount)
+                if (
+                    quantity_value > 0
+                    and quantity_value == quantity_value.to_integral_value()
+                    and abs(rate_value * quantity_value - amount_value) <= Decimal("0.01")
+                ):
+                    quantity = int(quantity_value)
                     parsed.quantity = quantity
-                    parsed.unit_rate = rate
+                    parsed.unit_rate = f"{rate_value:.2f}"
                 else:
                     parsed.issues.append("quantity × rate does not match the line amount")
                     parsed.quantity = None
                     parsed.unit_rate = None
-            except (TypeError, ValueError):
+            except InvalidOperation:
                 parsed.issues.append("quantity is not legible")
-        elif len(money) == 2:
-            rate = money[0]
-            parsed.unit_rate = rate
-            try:
-                derived_qty = round(float(amount) / float(rate))
-                if derived_qty > 1 and abs(derived_qty * float(rate) - float(amount)) <= 1:
-                    parsed.quantity = int(derived_qty)
-                else:
-                    parsed.quantity = 1
-            except (TypeError, ValueError, ZeroDivisionError):
-                parsed.quantity = 1
-        else:
-            parsed.quantity = 1
+        elif explicit_quantity is not None:
+            parsed.quantity = explicit_quantity
         parsed.amount = amount
-        if parsed.quantity is None:
-            parsed.quantity = 1
-            parsed.confidence = _confidence_for(source, 0.72, ocr, derived=True)
-            parsed.issues.append("quantity inferred as 1 because the scan is unclear")
-        else:
-            parsed.confidence = _confidence_for(source, 0.9, ocr)
+        parsed.confidence = _confidence_for(source, 0.9, ocr)
 
         if printed_cpt or printed_in_desc:
             code = (printed_cpt or printed_in_desc)[0]
@@ -569,7 +583,20 @@ def parse_policy(text: str, source: str, ocr: float | None, filename: str) -> di
         required=True,
     )
     fields["plan_name"] = _labelled_text(text, ["Plan", "Product", "Policy Name", "Plan Name"], source, required=False)
-    fields["sum_insured"] = _labelled_amount(text, ["Sum Insured", "Sum Assured", "Coverage Amount", "Basic Cover"], ocr, source)
+    fields["sum_insured"] = _labelled_amount(
+        text,
+        [
+            "Sum Insured",
+            "Sum Assured",
+            "Coverage Amount",
+            "Basic Cover",
+            "Family Floater Limit",
+            "Family Shared Limit",
+            "Family Limit",
+        ],
+        ocr,
+        source,
+    )
     fields["deductible"] = _labelled_amount(text, ["Deductible", "Excess"], ocr, source)
     if fields["deductible"].status == "missing":
         fields["deductible"] = _field("0.00", 0.55, "derived", "No deductible clause found; assumed zero and flagged", required=False)
@@ -652,6 +679,12 @@ def _exclusions(text: str, source: str, ocr: float | None) -> FieldValue:
         body = section.group(1)
         for raw in re.split(r"[\n•\-–]", body):
             item = raw.strip(" .;")
+            if re.search(
+                r"\b(?:(?:shared\s+)?family(?:\s+floater)?|family\s+shared)\s+(?:limit|sum\s+insured)\b",
+                item,
+                re.IGNORECASE,
+            ):
+                continue
             if 3 < len(item) < 120 and not item.lower().startswith(("waiting", "the following")):
                 items.append({"label": item})
             if len(items) >= 12:
@@ -713,9 +746,16 @@ def parse_invoice(text: str, source: str, ocr: float | None, filename: str, kind
         invoice_match.group(0) if invoice_match else "",
         required=False,
     )
-    date_match = DATE_RE.search(text)
+    date_label = re.search(
+        r"\b(?:service date|date of service|treatment date|visit date)\b\s*[:\-]?",
+        text,
+        re.IGNORECASE,
+    )
+    date_line = text[date_label.start() :].splitlines()[0] if date_label else ""
+    date_match = DATE_RE.search(date_line)
+    parsed_service_date = parse_date(date_match.group(0)) if date_match else None
     fields["service_date"] = _field(
-        parse_date(date_match.group(0)).isoformat() if date_match and parse_date(date_match.group(0)) else None,
+        parsed_service_date.isoformat() if parsed_service_date else None,
         _confidence_for(source, 0.88, ocr) if date_match else 0,
         source if date_match else "missing",
         date_match.group(0) if date_match else "",
@@ -723,18 +763,49 @@ def parse_invoice(text: str, source: str, ocr: float | None, filename: str, kind
     )
     lines, line_issues = _service_lines(text, source, ocr)
 
-    total = _labelled_amount(text, ["Grand Total", "Total Amount", "Total Payable", "Amount Payable", "Total", "Net Amount"], ocr, source)
+    total_text = "\n".join(
+        line for line in text.splitlines() if not re.match(r"^\s*sub\s*total\b", line, re.IGNORECASE)
+    )
+    total = _labelled_amount(
+        total_text,
+        [
+            "Grand Total",
+            "Invoice Total",
+            "Total Amount",
+            "Total Payable",
+            "Amount Payable",
+            "Total",
+            "Net Amount",
+        ],
+        ocr,
+        source,
+    )
+    fields["subtotal"] = _labelled_amount(text, ["Sub Total", "Subtotal"], ocr, source)
+    fields["tax"] = _labelled_amount(text, ["Tax", "GST", "CGST", "SGST", "IGST", "VAT"], ocr, source)
+    fields["discount"] = _labelled_amount(text, ["Discount"], ocr, source)
+    fields["adjustment"] = _labelled_amount(text, ["Adjustment", "Other Charges"], ocr, source)
+    fields["amount_paid"] = _labelled_amount(text, ["Amount Paid", "Payment Received", "Paid"], ocr, source)
+    fields["balance_due"] = _labelled_amount(
+        text, ["Outstanding Balance", "Outstanding Amount", "Balance Due", "Amount Due"], ocr, source
+    )
     if total.status == "missing" and lines:
-        summed = sum(float(line.amount or 0) for line in lines)
-        total = _field(f"{summed:.2f}", _confidence_for(source, 0.72, ocr, derived=True), "derived", "Summed from the parsed lines", required=True)
+        summed = sum((Decimal(str(line.amount or 0)) for line in lines), Decimal("0"))
+        total = _field(
+            f"{summed:.2f}",
+            _confidence_for(source, 0.72, ocr, derived=True),
+            "derived",
+            "Summed from the parsed service lines",
+            required=True,
+        )
 
     fields["total"] = total
     issues = list(line_issues)
     if lines and total.value:
-        line_sum = round(sum(float(line.amount or 0) for line in lines), 2)
-        if abs(line_sum - float(total.value)) > 1:
+        line_sum = sum((Decimal(str(line.amount or 0)) for line in lines), Decimal("0"))
+        total_value = Decimal(str(total.value))
+        if abs(line_sum - total_value) > Decimal("0.01"):
             issues.append(
-                f"The printed total ₹{float(total.value):,.2f} does not match the sum of the lines ₹{line_sum:,.2f}; "
+                f"The printed total ₹{total_value:,.2f} does not match the sum of the lines ₹{line_sum:,.2f}; "
                 "review the line items."
             )
             total.status = "review"

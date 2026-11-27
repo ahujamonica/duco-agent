@@ -163,8 +163,8 @@ export interface ReviewItem {
 export interface CaseClaimLine {
   id: number;
   description: string;
-  quantity: number;
-  unit_rate: string;
+  quantity: number | null;
+  unit_rate: string | null;
   billed: string;
   cpt_code: string | null;
   category: string;
@@ -179,6 +179,7 @@ export interface CaseDetail {
   title: string;
   status: string;
   patient_member_id: number;
+  selected_member_ids: number[];
   provider_name: string;
   provider_in_network: boolean;
   service_date: string | null;

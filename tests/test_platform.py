@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from server.main import app
+from server.services.document_intel import parse_policy
 
 ROOT = Path(__file__).resolve().parent.parent
 INVOICE = ROOT / "fixtures" / "priya_pt_invoice.png"
@@ -94,6 +95,71 @@ def make_household(client: TestClient, headers: dict) -> tuple[int, dict[str, in
     )
     assert policy.status_code == 201, policy.text
     return family_id, members, policy.json()["id"], policy_number
+
+
+def test_policy_creation_preserves_long_structured_and_legacy_exclusions(client: TestClient):
+    headers = register(client, "long-exclusions@example.com")
+    family = client.post("/api/families", json={"name": "Exclusions household"}, headers=headers)
+    assert family.status_code == 201, family.text
+    family_id = family.json()["id"]
+    member = client.post(
+        f"/api/families/{family_id}/members",
+        json={"name": "Test Member", "relation": "self", "date_of_birth": "1990-02-02"},
+        headers=headers,
+    )
+    assert member.status_code == 201, member.text
+    member_id = member.json()["id"]
+    long_exclusion = (
+        "Non-emergency outpatient treatment for a pre-existing medical condition is excluded "
+        "during the initial waiting period."
+    )
+    exclusions = [
+        {"label": f"Medical exclusion {index}", "keyword": f"medical exclusion {index}"}
+        for index in range(12)
+    ]
+    for index in (0, 6, 11):
+        long_text = f"{long_exclusion} ({index})"
+        exclusions[index] = {"label": long_text, "keyword": long_text}
+    exclusions.append("legacy equipment")
+    response = client.post(
+        "/api/policies",
+        json={
+            "family_id": family_id,
+            "insurer_name": "Test Assurance",
+            "plan_name": "Long Exclusions",
+            "policy_number": f"EXC-{uuid.uuid4().hex[:8].upper()}",
+            "policyholder_member_id": member_id,
+            "status": "active",
+            "start_date": "2025-01-01",
+            "end_date": "2027-12-31",
+            "terms": {
+                "exclusions": exclusions
+            },
+            "members": [{"member_id": member_id, "role": "policyholder"}],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    saved_exclusions = response.json()["current_version"]["terms"]["exclusions"]
+    for index in (0, 6, 11):
+        long_text = f"{long_exclusion} ({index})"
+        assert saved_exclusions[index] == {"label": long_text, "code": None, "keyword": long_text}
+    assert saved_exclusions[12] == {"label": "legacy equipment", "keyword": "legacy equipment"}
+
+
+def test_policy_extraction_keeps_family_limit_separate_from_exclusions():
+    extracted = parse_policy(
+        "Family Floater Limit: INR 10,00,000\n"
+        "Exclusions:\n"
+        "Dental treatment excluded\n"
+        "Family Floater Limit: INR 10,00,000 shared across members\n",
+        "text",
+        None,
+        "policy.txt",
+    )
+    fields = extracted["fields"]
+    assert fields["sum_insured"].value
+    assert [item["label"] for item in fields["exclusions"].value] == ["Dental treatment excluded"]
 
 
 def wait_for_run(client: TestClient, headers: dict, case_id: int, timeout: float = 45.0) -> str:
@@ -256,11 +322,221 @@ def test_end_to_end_case_review_results_and_reports(client: TestClient):
     assert DashboardDecimal(dashboard["totals"]["billed"]) >= billed
 
 
+def test_manual_only_multi_member_case_builds_claims_for_each_member(client: TestClient):
+    headers = register(client, "manual-household@example.com")
+    family_id, members, policy_id, _ = make_household(client, headers)
+    case = client.post(
+        "/api/cases",
+        json={
+            "family_id": family_id,
+            "title": "Household therapy",
+            "patient_member_id": members["Asha Rao"],
+            "selected_member_ids": [members["Asha Rao"], members["Vikram Rao"]],
+            "service_date": "2026-11-10",
+            "policy_ids": [policy_id],
+            "manual_lines": [
+                {
+                    "description": "Asha therapy",
+                    "amount": "1200.00",
+                    "quantity": 2,
+                    "member_id": members["Asha Rao"],
+                },
+                {
+                    "description": "Vikram therapy",
+                    "amount": "800.00",
+                    "member_id": members["Vikram Rao"],
+                },
+            ],
+        },
+        headers=headers,
+    )
+    assert case.status_code == 201, case.text
+    case_id = case.json()["id"]
+    assert client.post(f"/api/cases/{case_id}/analyze", headers=headers).status_code == 202
+    assert wait_for_run(client, headers, case_id) == "complete"
+
+    detail = client.get(f"/api/cases/{case_id}", headers=headers).json()
+    claims_by_member = {claim["member_id"]: claim for claim in detail["claims"]}
+    assert set(claims_by_member) == {members["Asha Rao"], members["Vikram Rao"]}
+    assert claims_by_member[members["Asha Rao"]]["lines"][0]["quantity"] == 2
+    assert claims_by_member[members["Asha Rao"]]["lines"][0]["unit_rate"] is None
+    assert claims_by_member[members["Vikram Rao"]]["lines"][0]["quantity"] is None
+    assert claims_by_member[members["Vikram Rao"]]["lines"][0]["unit_rate"] is None
+
+
+def test_manual_only_case_without_service_date_waits_instead_of_using_today(client: TestClient):
+    headers = register(client, "missing-service-date@example.com")
+    family_id, members, policy_id, _ = make_household(client, headers)
+    case = client.post(
+        "/api/cases",
+        json={
+            "family_id": family_id,
+            "title": "Undated therapy",
+            "patient_member_id": members["Asha Rao"],
+            "selected_member_ids": [members["Asha Rao"]],
+            "policy_ids": [policy_id],
+            "manual_lines": [
+                {
+                    "description": "Therapy",
+                    "amount": "1200.00",
+                    "quantity": 2,
+                    "unit_rate": "600.00",
+                    "member_id": members["Asha Rao"],
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert case.status_code == 201, case.text
+    case_id = case.json()["id"]
+    assert client.post(f"/api/cases/{case_id}/analyze", headers=headers).status_code == 202
+    assert wait_for_run(client, headers, case_id) == "awaiting_review"
+
+    detail = client.get(f"/api/cases/{case_id}", headers=headers).json()
+    assert detail["claims"] == []
+    assert detail["review_pending"] == 0
+    assert detail["review_items"] == []
+    assert any(gap["code"] == "service_date_manual" for gap in detail["gaps"])
+    confirmed = client.post(
+        f"/api/cases/{case_id}/review",
+        json={"items": [], "confirm": True},
+        headers=headers,
+    )
+    assert confirmed.status_code == 409
+    assert client.get(f"/api/cases/{case_id}", headers=headers).json()["review_confirmed"] is False
+    trace = client.get(f"/api/cases/{case_id}/trace", headers=headers).json()
+    pause = next(event for event in trace["events"] if event["action"] == "interrupt")
+    assert "Service date is required" in pause["observation"]
+
+
+def test_document_review_resumes_and_keeps_each_selected_member_mapping(client: TestClient):
+    headers = register(client, "review-household@example.com")
+    family = client.post("/api/families", json={"name": "Mehta household"}, headers=headers)
+    assert family.status_code == 201, family.text
+    family_id = family.json()["id"]
+    members = {}
+    for name, relation, dob in (
+        ("Arjun Mehta", "self", "1988-04-04"),
+        ("Kavya Mehta", "spouse", "1990-08-08"),
+    ):
+        response = client.post(
+            f"/api/families/{family_id}/members",
+            json={"name": name, "relation": relation, "date_of_birth": dob},
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
+        members[name] = response.json()["id"]
+
+    policy = client.post(
+        "/api/policies",
+        json={
+            "family_id": family_id,
+            "insurer_name": "Test Assurance",
+            "plan_name": "Family Care",
+            "policy_number": f"REV-{uuid.uuid4().hex[:8].upper()}",
+            "policyholder_member_id": members["Arjun Mehta"],
+            "status": "active",
+            "start_date": "2025-01-01",
+            "end_date": "2027-12-31",
+            "terms": {
+                "sum_insured": "600000",
+                "annual_limit": "600000",
+                "preauth_threshold": "1000000",
+            },
+            "members": [
+                {"member_id": members["Arjun Mehta"], "role": "policyholder"},
+                {"member_id": members["Kavya Mehta"], "role": "spouse"},
+            ],
+        },
+        headers=headers,
+    )
+    assert policy.status_code == 201, policy.text
+
+    document_ids = []
+    for name, invoice_number in (("Arjun Mehta", "ARJ-1"), ("Kavya Mehta", "KAV-1")):
+        content = (
+            f"Sunrise Clinic\nInvoice Number: {invoice_number}\nPatient: {name}\n"
+            "Service: Consultation 100.00\nTotal: 100.00\n"
+        )
+        pdf = pymupdf.open()
+        page = pdf.new_page()
+        page.insert_text((50, 50), content)
+        pdf_content = pdf.tobytes()
+        pdf.close()
+        uploaded = client.post(
+            "/api/documents/upload",
+            data={"family_id": str(family_id), "doc_type": "invoice"},
+            files={"file": (f"{invoice_number}.pdf", pdf_content, "application/pdf")},
+            headers=headers,
+        )
+        assert uploaded.status_code == 201, uploaded.text
+        document_ids.append(uploaded.json()["document"]["id"])
+
+    created = client.post(
+        "/api/cases",
+        json={
+            "family_id": family_id,
+            "title": "Household consultations",
+            "patient_member_id": members["Arjun Mehta"],
+            "selected_member_ids": list(members.values()),
+            "service_date": "2026-11-25",
+            "document_ids": document_ids,
+            "policy_ids": [policy.json()["id"]],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+    case_id = created.json()["id"]
+    assert client.post(f"/api/cases/{case_id}/analyze", headers=headers).status_code == 202
+    assert wait_for_run(client, headers, case_id) == "awaiting_review"
+
+    detail = client.get(f"/api/cases/{case_id}", headers=headers).json()
+    assert detail["selected_member_ids"] == list(members.values())
+    trace = client.get(f"/api/cases/{case_id}/trace", headers=headers).json()
+    assert detail["review_pending"] == 2, (
+        {
+            "items": detail["review_items"],
+            "gaps": detail["gaps"],
+            "doc_types": [document["doc_type"] for document in detail["documents"]],
+            "review_confirmed": detail["review_confirmed"],
+            "events": [(event["agent"], event["action"]) for event in trace["events"]],
+        }
+    )
+    pending = detail["review_items"]
+    assert {item["status"] for item in pending} == {"pending"}
+    assert {item["field_key"] for item in pending} == {"line:0:cpt"}
+    assert {item["document_id"] for item in pending} == set(document_ids)
+
+    reviewed = client.post(
+        f"/api/cases/{case_id}/review",
+        json={
+            "items": [
+                {"id": item["id"], "status": "corrected", "value": "97110"}
+                for item in pending
+            ],
+            "confirm": True,
+        },
+        headers=headers,
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["review_pending"] == 0
+    assert {item["status"] for item in reviewed.json()["items"]} == {"corrected"}
+
+    assert client.post(f"/api/cases/{case_id}/analyze", headers=headers).status_code == 202
+    assert wait_for_run(client, headers, case_id) == "complete"
+    completed = client.get(f"/api/cases/{case_id}", headers=headers).json()
+    claims_by_document = {claim["document_id"]: claim["member_id"] for claim in completed["claims"]}
+    assert claims_by_document == {
+        document_ids[0]: members["Arjun Mehta"],
+        document_ids[1]: members["Kavya Mehta"],
+    }
+
+
 def DashboardDecimal(value: str) -> Decimal:
     return Decimal(value)
 
 
-def test_preauthorization_letter_is_generated_for_a_surgical_estimate(client: TestClient):
+def test_preauthorization_letter_is_generated_for_a_surgical_estimate(client: TestClient, tmp_path: Path):
     headers = register(client, "surgery@example.com")
     family_id, members, policy_id, policy_number = make_household(client, headers)
     with (ROOT / "fixtures" / "surgeon_estimate.jpg").open("rb") as handle:
@@ -302,7 +578,7 @@ def test_preauthorization_letter_is_generated_for_a_surgical_estimate(client: Te
     assert download.status_code == 200
     assert download.headers["content-type"] == "application/pdf"
     text = ""
-    path = Path(f"/tmp/duco-letter-{case['id']}.pdf")
+    path = tmp_path / f"duco-letter-{case['id']}.pdf"
     path.write_bytes(download.content)
     pdf = pymupdf.open(str(path))
     for page in pdf:
@@ -452,10 +728,10 @@ def _policy_pdf(path: Path) -> None:
     pdf.save()
 
 
-def test_policy_pdf_extraction_and_versioning(client: TestClient):
+def test_policy_pdf_extraction_and_versioning(client: TestClient, tmp_path: Path):
     headers = register(client, "policy-pdf@example.com")
     family_id, members, policy_id, _ = make_household(client, headers)
-    path = Path("/tmp/duco-policy-fixture.pdf")
+    path = tmp_path / "duco-policy-fixture.pdf"
     _policy_pdf(path)
     with path.open("rb") as handle:
         uploaded = client.post(

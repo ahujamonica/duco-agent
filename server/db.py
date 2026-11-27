@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import DATABASE_URL
@@ -41,3 +41,17 @@ def init_db() -> None:
     from . import models  # noqa: F401  (register mappers)
 
     Base.metadata.create_all(bind=engine)
+    if "claim_lines" in inspect(engine).get_table_names():
+        existing_columns = {
+            column["name"] for column in inspect(engine).get_columns("claim_lines")
+        }
+        boolean_default = "0" if engine.dialect.name == "sqlite" else "FALSE"
+        with engine.begin() as connection:
+            for name in ("quantity_known", "unit_rate_known"):
+                if name not in existing_columns:
+                    connection.execute(
+                        text(
+                            f"ALTER TABLE claim_lines ADD COLUMN {name} "
+                            f"BOOLEAN NOT NULL DEFAULT {boolean_default}"
+                        )
+                    )

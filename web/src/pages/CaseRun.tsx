@@ -115,7 +115,11 @@ export default function CaseRun() {
   if (!detail) return null;
 
   const complete = detail.status === "complete";
-  const review = detail.status === "awaiting_review";
+  const review = detail.status === "awaiting_review" && detail.review_pending > 0;
+  const pausedWithoutReview =
+    detail.status === "awaiting_review" && detail.review_pending === 0;
+  const pauseGap =
+    detail.gaps.find((gap) => gap.severity === "blocking") || detail.gaps[0];
   const failed = detail.status === "failed";
   const totals = detail.totals || {};
   const doneTasks = Object.values(tasks).filter((value) => value === "done").length;
@@ -153,6 +157,15 @@ export default function CaseRun() {
             }
           >
             {t("review.runAfter")}
+          </Alert>
+        </div>
+      )}
+      {pausedWithoutReview && (
+        <div className="mb-4">
+          <Alert tone="warning" title="Workflow paused">
+            {pauseGap
+              ? `${pauseGap.title}: ${pauseGap.detail}${pauseGap.action ? ` ${pauseGap.action}` : ""}`
+              : "The workflow paused without pending review fields. Check the case gaps and activity for the required next step."}
           </Alert>
         </div>
       )}

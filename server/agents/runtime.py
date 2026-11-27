@@ -131,6 +131,9 @@ class RunContext:
             }
         )
 
+    def resolve_gap(self, code: str) -> None:
+        self.gaps = [item for item in self.gaps if item.get("code") != code]
+
     def assume(self, text: str) -> None:
         if text and text not in self.assumptions:
             self.assumptions.append(text)
@@ -164,6 +167,8 @@ class Supervisor:
         ctx = self.ctx
         ctx.state["stage"] = "planning"
         ctx.state["tasks"] = {task["name"]: "pending" for task in TASK_GRAPH}
+        ctx.state["review_pending"] = 0
+        ctx.state.pop("pause_reason", None)
         ctx.emit(
             "Supervisor Agent",
             "Plan the case",
@@ -219,18 +224,52 @@ class Supervisor:
             ctx.state["tasks"][task["name"]] = "done" if result == "done" else result
             ctx.save()
             if result == "pause":
+                review_pending = int(ctx.state.get("review_pending") or 0)
+                blocking_gap = next(
+                    (gap for gap in reversed(ctx.gaps) if gap.get("severity") == "blocking"),
+                    None,
+                )
+                pause_detail = (
+                    f"{review_pending} extracted field(s) need confirmation."
+                    if review_pending
+                    else (
+                        f"{blocking_gap.get('title')}: {blocking_gap.get('detail')}"
+                        if blocking_gap
+                        else "The workflow paused without pending review fields or a blocking gap."
+                    )
+                )
+                ctx.state["pause_reason"] = {
+                    "kind": "human_review" if review_pending else "required_action",
+                    "detail": pause_detail,
+                }
+                ctx.save()
                 self.case.status = "awaiting_review"
                 self.case.workflow_state = {**(self.case.workflow_state or {}), "stage": "review"}
                 self.db.add(self.case)
                 self.db.commit()
                 ctx.emit(
                     "Supervisor Agent",
-                    "Pause for human review",
+                    "Pause for human review" if review_pending else "Pause for required action",
                     "interrupt",
-                    observation="One or more extracted fields need a person to confirm them.",
-                    checks=[{"name": "Confidence gate", "passed": False, "detail": "Low-confidence fields present"}],
-                    decision="Pause before any money is calculated. Resume after the review is submitted.",
-                    next_action="awaiting_review",
+                    observation=pause_detail,
+                    checks=[
+                        {
+                            "name": "Pending review fields",
+                            "passed": review_pending == 0,
+                            "detail": str(review_pending),
+                        },
+                        {
+                            "name": "Pause reason identified",
+                            "passed": bool(blocking_gap or review_pending),
+                            "detail": pause_detail,
+                        },
+                    ],
+                    decision=(
+                        "Pause before any money is calculated until a person confirms the fields."
+                        if review_pending
+                        else "Pause until the blocking requirement is resolved."
+                    ),
+                    next_action="awaiting_review" if review_pending else "resolve_required_action",
                     status="waiting",
                 )
                 return "paused"

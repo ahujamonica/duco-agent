@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -33,6 +34,26 @@ from ..services.results import build_gaps, build_results, build_trace, explain_l
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
 
+def _is_active_review_item(item: ReviewItem, documents_by_id: dict[int, Document]) -> bool:
+    """Hide obsolete prompts for unmatched CPT codes without deleting their audit rows."""
+    match = re.fullmatch(r"line:(\d+):cpt", item.field_key or "")
+    if not match:
+        return True
+
+    doc = documents_by_id.get(item.document_id)
+    if not doc or not isinstance(doc.fields, dict):
+        return True
+    lines = doc.fields.get("_lines")
+    index = int(match.group(1))
+    if not isinstance(lines, list) or index >= len(lines) or not isinstance(lines[index], dict):
+        return True
+
+    line = lines[index]
+    code = line.get("code") if isinstance(line.get("code"), dict) else {}
+    code_source = code.get("source") or line.get("code_source")
+    return bool(line.get("cpt_code")) or code_source != "unavailable"
+
+
 def _versions_for_policies(db: Session, family_id: int, policy_ids: list[int]) -> list[int]:
     if not policy_ids:
         policies = db.query(Policy).filter(Policy.family_id == family_id).order_by(Policy.id).all()
@@ -58,15 +79,77 @@ def _validate_documents(db: Session, family_id: int, document_ids: list[int]) ->
 
 
 @router.post("", status_code=201)
-def create_case(payload: CaseIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def create_case(
+    payload: CaseIn,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
     family = family_for_user(db, payload.family_id, user)
-    patient = db.get(FamilyMember, payload.patient_member_id)
-    if not patient or patient.family_id != family.id:
-        raise HTTPException(status_code=422, detail="The patient must be a member of this household.")
+
+    # Backward compatibility: older clients send only patient_member_id.
+    selected_member_ids = (
+        payload.selected_member_ids
+        if payload.selected_member_ids
+        else [payload.patient_member_id]
+    )
+
+    if not selected_member_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="Select at least one family member.",
+        )
+
+    if len(selected_member_ids) != len(set(selected_member_ids)):
+        raise HTTPException(
+            status_code=422,
+            detail="Duplicate family members were selected.",
+        )
+
+    members = (
+        db.query(FamilyMember)
+        .filter(
+            FamilyMember.family_id == family.id,
+            FamilyMember.id.in_(selected_member_ids),
+        )
+        .all()
+    )
+    members_by_id = {member.id: member for member in members}
+
+    if len(members_by_id) != len(selected_member_ids):
+        raise HTTPException(
+            status_code=422,
+            detail="One or more selected members do not belong to this household.",
+        )
+
+    # Keep the legacy lead-patient field, but require it to be selected.
+    if payload.patient_member_id not in members_by_id:
+        raise HTTPException(
+            status_code=422,
+            detail="The lead patient must be one of the selected members.",
+        )
+    patient = members_by_id[payload.patient_member_id]
+
+    if len(payload.document_ids) != len(set(payload.document_ids)):
+        raise HTTPException(
+            status_code=422,
+            detail="Duplicate documents were selected.",
+        )
     _validate_documents(db, family.id, payload.document_ids)
+
+    if len(payload.policy_ids) != len(set(payload.policy_ids)):
+        raise HTTPException(
+            status_code=422,
+            detail="Duplicate policies were selected.",
+        )
     version_ids = _versions_for_policies(db, family.id, payload.policy_ids)
     if not version_ids:
-        raise HTTPException(status_code=422, detail="Add at least one insurance policy before creating a case.")
+        raise HTTPException(
+            status_code=422,
+            detail="Add at least one insurance policy before creating a case.",
+        )
+
+    coordination_rule = payload.coordination_rule or family.coordination_rule
+
     case = Case(
         family_id=family.id,
         title=payload.title.strip(),
@@ -75,13 +158,17 @@ def create_case(payload: CaseIn, user: User = Depends(current_user), db: Session
         provider_in_network=payload.provider_in_network,
         service_date=payload.service_date,
         narrative=payload.narrative,
-        coordination_rule=payload.coordination_rule or family.coordination_rule,
+        coordination_rule=coordination_rule,
         policy_version_ids=version_ids,
         document_ids=payload.document_ids,
         status="ready" if (payload.document_ids or payload.manual_lines) else "draft",
         workflow_state={
+            "selected_member_ids": selected_member_ids,
             "manual_lines": payload.manual_lines,
-            "policy_order": payload.policy_order or (payload.policy_ids if (payload.coordination_rule or family.coordination_rule) == "manual" else []),
+            "policy_order": (
+                payload.policy_order
+                or (payload.policy_ids if coordination_rule == "manual" else [])
+            ),
             "gaps": [],
             "assumptions": [],
             "stage": "draft",
@@ -149,6 +236,8 @@ def _detail(db: Session, case: Case) -> dict:
             if policy:
                 policies.append(policy_out(policy, detail=False))
     reviews = db.query(ReviewItem).filter(ReviewItem.case_id == case.id).order_by(ReviewItem.id).all()
+    documents_by_id = {document.id: document for document in documents}
+    active_reviews = [item for item in reviews if _is_active_review_item(item, documents_by_id)]
     trace_count = db.query(AgentEvent).filter(AgentEvent.case_id == case.id).count()
     return {
         **case_out(case),
@@ -169,8 +258,8 @@ def _detail(db: Session, case: Case) -> dict:
                     {
                         "id": line.id,
                         "description": line.description,
-                        "quantity": line.quantity,
-                        "unit_rate": str(line.unit_rate),
+                        "quantity": line.quantity if line.quantity_known else None,
+                        "unit_rate": str(line.unit_rate) if line.unit_rate_known else None,
                         "billed": str(line.billed_amount),
                         "cpt_code": line.cpt_code,
                         "category": line.category,
@@ -185,8 +274,8 @@ def _detail(db: Session, case: Case) -> dict:
         ],
         "documents": [document_out(document, include_fields=False) for document in documents],
         "policies": policies,
-        "review_items": [review_out(item) for item in reviews],
-        "review_pending": len([item for item in reviews if item.status == "pending"]),
+        "review_items": [review_out(item) for item in active_reviews],
+        "review_pending": len([item for item in active_reviews if item.status == "pending"]),
         "gaps": (case.workflow_state or {}).get("gaps") or [],
         "assumptions": (case.workflow_state or {}).get("assumptions") or [],
         "trace": {
@@ -242,10 +331,15 @@ def analyze_case(case_id: int, user: User = Depends(current_user), db: Session =
     case = case_for_user(db, case_id, user)
     if case.status in ("running", "queued"):
         raise HTTPException(status_code=409, detail="This case is already being analysed.")
-    pending = (
-        db.query(ReviewItem)
-        .filter(ReviewItem.case_id == case.id, ReviewItem.status == "pending")
-        .count()
+    review_items = db.query(ReviewItem).filter(ReviewItem.case_id == case.id).all()
+    documents = (
+        db.query(Document).filter(Document.id.in_(case.document_ids or [])).all()
+        if case.document_ids else []
+    )
+    documents_by_id = {document.id: document for document in documents}
+    pending = sum(
+        1 for item in review_items
+        if item.status == "pending" and _is_active_review_item(item, documents_by_id)
     )
     if pending and not case.review_confirmed:
         raise HTTPException(
@@ -284,21 +378,69 @@ def submit_review(
 ):
     case = case_for_user(db, case_id, user)
     items = db.query(ReviewItem).filter(ReviewItem.case_id == case.id).all()
-    by_id = {item.id: item for item in items}
+    documents = (
+        db.query(Document).filter(Document.id.in_(case.document_ids or [])).all()
+        if case.document_ids else []
+    )
+    documents_by_id = {document.id: document for document in documents}
+    active_items = [item for item in items if _is_active_review_item(item, documents_by_id)]
+    by_id = {item.id: item for item in active_items}
+
+    # Validate the complete submission before changing any review records.
+    submitted_ids = [update.id for update in payload.items]
+
+    if len(submitted_ids) != len(set(submitted_ids)):
+        raise HTTPException(status_code=422, detail="Duplicate review item IDs.")
+
+    if payload.confirm:
+        pending_ids = {
+            item.id for item in active_items if item.status == "pending"
+        }
+        if not pending_ids and not active_items and not case.review_confirmed:
+            raise HTTPException(
+                status_code=409,
+                detail="There are no pending review fields to confirm.",
+            )
+        if not pending_ids.issubset(set(submitted_ids)):
+            raise HTTPException(
+                status_code=422,
+                detail="Resolve every pending review item before confirming.",
+            )
+
     for update in payload.items:
         item = by_id.get(update.id)
         if not item:
-            raise HTTPException(status_code=404, detail=f"Review item {update.id} is not part of this case.")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Review item {update.id} is not part of this case.",
+            )
+
+        value = (update.value or "").strip()
+
+        if update.status == "accepted":
+            if not (item.extracted_value or "").strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Cannot accept an empty extracted value: {item.label}. Enter a correction.",
+                )
+
+        elif update.status == "corrected" and not value:
+            raise HTTPException(
+                status_code=422,
+                detail=f"A corrected value is required for: {item.label}.",
+            )
+
+        
+    for update in payload.items:
+        item = by_id[update.id]
         item.status = update.status
-        item.corrected_value = update.value
+        item.corrected_value = (
+            None if update.status == "accepted" else (update.value or "").strip()
+        )
         item.resolved_at = utcnow()
         db.add(item)
     db.commit()
-    remaining = (
-        db.query(ReviewItem)
-        .filter(ReviewItem.case_id == case.id, ReviewItem.status == "pending")
-        .count()
-    )
+    remaining = sum(1 for item in active_items if item.status == "pending")
     if payload.confirm and remaining == 0:
         case.review_confirmed = True
         case.status = "ready"
@@ -315,7 +457,7 @@ def submit_review(
         "status": case.status,
         "items": [
             review_out(item)
-            for item in db.query(ReviewItem).filter(ReviewItem.case_id == case.id).order_by(ReviewItem.id).all()
+            for item in active_items
         ],
         "next": "Start the analysis." if case.review_confirmed else "Resolve the remaining fields.",
     }

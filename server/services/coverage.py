@@ -174,9 +174,9 @@ def member_policies_for_claim(
 
 
 def _years_old(dob: date | None, on: date | None) -> int | None:
-    if not dob:
+    if not dob or not on:
         return None
-    ref = on or date.today()
+    ref = on
     return ref.year - dob.year - ((ref.month, ref.day) < (dob.month, dob.day))
 
 
@@ -326,8 +326,8 @@ def claim_input(claim: Claim, service_date: date | None) -> ClaimInput:
             line_id=line.id,
             description=line.description,
             billed=_dec(line.billed_amount),
-            quantity=line.quantity or 1,
-            unit_rate=_dec(line.unit_rate),
+            quantity=line.quantity if line.quantity_known else None,
+            unit_rate=_dec(line.unit_rate) if line.unit_rate_known else None,
             cpt_code=line.cpt_code,
             icd_codes=line.icd_codes or [],
             category=line.category,

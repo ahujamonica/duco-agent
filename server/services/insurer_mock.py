@@ -296,8 +296,8 @@ class MockInsurerService:
                     line_id=index + 1,
                     description=line.get("description") or f"Line {index + 1}",
                     billed=_dec(line.get("billed") or line.get("amount")),
-                    quantity=int(line.get("quantity") or 1),
-                    unit_rate=_dec(line.get("unit_rate")),
+                    quantity=int(line["quantity"]) if line.get("quantity") not in (None, "") else None,
+                    unit_rate=_dec(line["unit_rate"]) if line.get("unit_rate") not in (None, "") else None,
                     cpt_code=line.get("cpt_code"),
                     icd_codes=line.get("icd_codes") or [],
                     category=line.get("category") or "professional",
@@ -413,8 +413,11 @@ class MockInsurerService:
             status = "rejected"
             reasons.extend(eligibility.get("reasons") or ["member not eligible"])
         if not procedure_codes:
-            status = "rejected"
-            reasons.append("procedure codes are missing")
+            if status != "rejected":
+                status = "pending"
+            reasons.append(
+            "Procedure codes are missing; manual coding review is required."
+    )
         if not diagnosis_codes:
             status = "rejected"
             reasons.append("diagnosis codes are missing")

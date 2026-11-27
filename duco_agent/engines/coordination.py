@@ -109,8 +109,8 @@ class LineInput:
     line_id: int
     description: str
     billed: Decimal
-    quantity: int = 1
-    unit_rate: Decimal = ZERO
+    quantity: int | None = 1
+    unit_rate: Decimal | None = ZERO
     cpt_code: Optional[str] = None
     icd_codes: list[str] = field(default_factory=list)
     category: str = "professional"

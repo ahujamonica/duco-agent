@@ -70,7 +70,7 @@ class SublimitIn(BaseModel):
 class ExclusionIn(BaseModel):
     label: str = Field(min_length=1, max_length=200)
     code: str | None = Field(default=None, max_length=20)
-    keyword: str | None = Field(default=None, max_length=80)
+    keyword: str | None = Field(default=None, max_length=200)
 
 
 class TermsIn(BaseModel):
@@ -154,6 +154,7 @@ class CaseIn(BaseModel):
     family_id: int
     title: str = Field(min_length=2, max_length=200)
     patient_member_id: int
+    selected_member_ids: list[int] = Field(default_factory=list)
     provider_name: str = ""
     provider_in_network: bool = True
     service_date: date | None = None

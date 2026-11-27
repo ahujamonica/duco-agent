@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 import time
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from duco_agent.codes import suggest_cpt
 from duco_agent.engines.coordination import OrderDecision, adjudicate_claim, preauth_requirement
@@ -49,8 +49,8 @@ from .runtime import RunContext
 
 REVIEW_THRESHOLD = 0.72
 CRITICAL_FIELDS = {
-    "invoice": ["patient", "total"],
-    "estimate": ["patient", "total"],
+    "invoice": ["patient", "total", "service_date"],
+    "estimate": ["patient", "total", "service_date"],
     "policy": ["insurer", "policy_number", "sum_insured", "coinsurance_member"],
     "radiology": ["patient"],
     "prescription": ["patient"],
@@ -108,6 +108,23 @@ def _claim_docs(ctx: RunContext) -> list[Document]:
     if not ids:
         return []
     return ctx.db.query(Document).filter(Document.id.in_(ids)).order_by(Document.id).all()
+
+
+def _positive_decimal(value: object) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return parsed if parsed.is_finite() and parsed > 0 else None
+
+
+def _positive_quantity(value: object) -> int | None:
+    parsed = _positive_decimal(value)
+    if parsed is None or parsed != parsed.to_integral_value():
+        return None
+    return int(parsed)
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +198,7 @@ def intake_node(ctx: RunContext) -> str:
         )
         ctx.save()
         return "pause"
+    ctx.resolve_gap("no_policy")
     if not documents and not (ctx.case.workflow_state or {}).get("manual_lines"):
         ctx.gap(
             "no_documents",
@@ -191,10 +209,12 @@ def intake_node(ctx: RunContext) -> str:
         )
         ctx.save()
         return "pause"
+    ctx.resolve_gap("no_documents")
     if not family.members:
         ctx.gap("no_members", "blocking", "Add family members", "A claim needs at least one covered person.", "Open Family.")
         ctx.save()
         return "pause"
+    ctx.resolve_gap("no_members")
     return "done"
 
 
@@ -241,7 +261,9 @@ def _line_review_items(doc: Document) -> list[dict]:
             continue
         code_source = (line.get("code") or {}).get("source") or line.get("code_source")
         confidence = float((line.get("code") or {}).get("confidence") or line.get("code_confidence") or 0)
-        if code_source in ("inferred", "unavailable") or confidence < 0.7:
+        if code_source == "inferred" or (
+            bool(line.get("cpt_code")) and confidence < 0.7
+        ):
             items.append(
                 {
                     "field_key": f"line:{index}:cpt",
@@ -271,9 +293,19 @@ def _line_review_items(doc: Document) -> list[dict]:
 
 
 def _sync_review_items(ctx: RunContext, documents: list[Document]) -> int:
-    ctx.db.query(ReviewItem).filter(ReviewItem.case_id == ctx.case.id).delete()
-    ctx.db.commit()
-    created = 0
+    """Reconcile review candidates without deleting the review history."""
+    existing_items = (
+        ctx.db.query(ReviewItem)
+        .filter(ReviewItem.case_id == ctx.case.id)
+        .all()
+    )
+    existing_by_key = {
+        (item.document_id, item.field_key): item for item in existing_items
+    }
+
+    pending_count = 0
+    candidate_keys: set[tuple[int, str]] = set()
+
     for doc in documents:
         candidates = _review_candidates(doc)
         candidates += _line_review_items(doc)
@@ -288,24 +320,43 @@ def _sync_review_items(ctx: RunContext, documents: list[Document]) -> int:
                     "reason": "The document type could not be identified; choose the right one.",
                 }
             )
-        for item in candidates:
-            if created >= 12:
-                break
-            ctx.db.add(
-                ReviewItem(
+
+        for candidate in candidates:
+            if candidate["field_key"] == "service_date" and ctx.case.service_date:
+                continue
+            key = (doc.id, candidate["field_key"])
+            candidate_keys.add(key)
+            existing = existing_by_key.get(key)
+
+            if existing and existing.status in ("accepted", "corrected"):
+                continue
+
+            if existing and existing.status == "pending":
+                existing.label = candidate["label"]
+                existing.extracted_value = candidate["value"]
+                existing.confidence = Decimal(str(round(candidate["confidence"], 3)))
+                existing.source_text = candidate["source_text"]
+                existing.reason = candidate["reason"]
+                ctx.db.add(existing)
+            else:
+                review_item = ReviewItem(
                     case_id=ctx.case.id,
                     document_id=doc.id,
-                    field_key=item["field_key"],
-                    label=item["label"],
-                    extracted_value=item["value"],
-                    confidence=Decimal(str(round(item["confidence"], 3))),
-                    source_text=item["source_text"],
-                    reason=item["reason"],
+                    field_key=candidate["field_key"],
+                    label=candidate["label"],
+                    extracted_value=candidate["value"],
+                    confidence=Decimal(str(round(candidate["confidence"], 3))),
+                    source_text=candidate["source_text"],
+                    reason=candidate["reason"],
                 )
-            )
-            created += 1
+                ctx.db.add(review_item)
+                existing_by_key[key] = review_item
+
+            pending_count += 1
+
+
     ctx.db.commit()
-    return created
+    return pending_count
 
 
 def _apply_review_results(ctx: RunContext, documents: list[Document]) -> None:
@@ -331,10 +382,12 @@ def _apply_review_results(ctx: RunContext, documents: list[Document]) -> None:
                 line["code_source"] = "corrected" if line.get("cpt_code") else "unavailable"
                 line["code_confidence"] = 0.99 if line.get("cpt_code") else 0.0
             elif attr == "quantity":
+                cleaned = str(value or "").strip()
                 try:
-                    line["quantity"] = int(float(value or 1))
+                    quantity = int(cleaned) if cleaned else None
                 except ValueError:
-                    line["quantity"] = 1
+                    quantity = None
+                line["quantity"] = quantity if quantity and quantity > 0 else None
             fields["_lines"] = lines
         elif item.field_key == "_document_type":
             if str(value).strip():
@@ -346,8 +399,11 @@ def _apply_review_results(ctx: RunContext, documents: list[Document]) -> None:
             clean_value = value
             if numeric:
                 try:
-                    clean_value = f"{float(str(value).replace(',', '').replace('₹', '')):.2f}"
-                except ValueError:
+                    amount = Decimal(
+                        str(value).replace(",", "").replace("₹", "").replace("Rs.", "").replace("INR", "").strip()
+                    )
+                    clean_value = f"{amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
+                except InvalidOperation:
                     clean_value = value
             elif coinsurance:
                 try:
@@ -434,9 +490,11 @@ def documents_node(ctx: RunContext) -> str:
             duration_ms=int((time.perf_counter() - began) * 1000),
         )
 
-    if not documents:
+    manual_lines = (ctx.case.workflow_state or {}).get("manual_lines") or []
+    if not documents and not manual_lines:
         ctx.gap("no_documents", "blocking", "No documents", "Attach a bill, estimate or policy document.", "Upload a document.")
         return "pause"
+    ctx.resolve_gap("no_documents")
 
     if ctx.case.review_confirmed:
         _apply_review_results(ctx, documents)
@@ -463,10 +521,11 @@ def documents_node(ctx: RunContext) -> str:
                 f"{review_count} field(s) need confirmation before the claim can be adjudicated.",
                 "Open the document review screen and confirm or correct each field.",
             )
-            ctx.save(stage="review", documents=processed)
+            ctx.save(stage="review", documents=processed, review_pending=review_count)
             return "pause"
     else:
         ctx.gaps = [gap for gap in ctx.gaps if gap.get("code") != "review_required"]
+        ctx.state["review_pending"] = 0
         ctx.emit(
             "Document Intelligence Agent",
             "documents",
@@ -478,6 +537,11 @@ def documents_node(ctx: RunContext) -> str:
         )
 
     claims = _build_claims(ctx, documents)
+    if claims:
+        ctx.resolve_gap("no_claims")
+    if any(gap.get("severity") == "blocking" for gap in ctx.gaps):
+        ctx.save(documents=processed, documents_processed=True, claims=[c.id for c in claims])
+        return "pause"
     ctx.save(documents=processed, documents_processed=True, claims=[c.id for c in claims])
     if not claims:
         ctx.gap(
@@ -516,8 +580,9 @@ def documents_node(ctx: RunContext) -> str:
     )
     return "done"
 
-
 def _build_claims(ctx: RunContext, documents: list[Document]) -> list[Claim]:
+    """Build claims only when document ownership is unambiguous and selected."""
+
     # Rebuild from scratch so a re-run is deterministic.
     existing = ctx.db.query(Claim).filter(Claim.case_id == ctx.case.id).all()
     for claim in existing:
@@ -526,148 +591,400 @@ def _build_claims(ctx: RunContext, documents: list[Document]) -> list[Claim]:
     ctx.db.commit()
 
     family = _family(ctx)
-    lead = _lead_member(ctx)
+    family_members = {member.id: member for member in family.members}
+
+    workflow_state = dict(ctx.case.workflow_state or {})
+    selected_ids = workflow_state.get("selected_member_ids")
+
+    # Backward compatibility with cases created before multi-member selection.
+    if not selected_ids:
+        selected_ids = [ctx.case.patient_member_id]
+
+    selected_ids = list(dict.fromkeys(int(member_id) for member_id in selected_ids))
+
+    invalid_ids = [member_id for member_id in selected_ids if member_id not in family_members]
+    if invalid_ids:
+        ctx.gap(
+            "invalid_selected_members",
+            "blocking",
+            "Selected household members are invalid",
+            f"These member IDs do not belong to this household: {invalid_ids}.",
+            "Reopen the case and select valid household members.",
+        )
+        return []
+    ctx.resolve_gap("invalid_selected_members")
+
+    if not selected_ids:
+        ctx.gap(
+            "no_selected_members",
+            "blocking",
+            "No household members selected",
+            "At least one household member must be selected before claims can be built.",
+            "Reopen the case and select one or more household members.",
+        )
+        return []
+    ctx.resolve_gap("no_selected_members")
+
+    selected_members = {member_id: family_members[member_id] for member_id in selected_ids}
+
     claims: list[Claim] = []
     diagnosis_by_member: dict[int, list[str]] = {}
     justification_by_member: dict[int, str] = {}
 
+    def match_selected_member(document: Document):
+        """Require one exact, unique household-member name match."""
+        fields = document.fields or {}
+        patient_field = fields.get("patient") or {}
+        name = str(patient_field.get("value") or "").strip()
+        normalized_name = _normalise(name)
+
+        if not normalized_name:
+            return None, "The document does not contain a patient name."
+
+        matches = [
+            member
+            for member in selected_members.values()
+            if _normalise(member.name) == normalized_name
+        ]
+
+        if len(matches) == 1:
+            ctx.resolve_gap(f"patient_match_{document.id}")
+            ctx.resolve_gap(f"document_member_{document.id}")
+            return matches[0], None
+
+        if len(matches) > 1:
+            return None, f"The patient name '{name}' matches multiple selected members."
+
+        household_matches = [
+            member
+            for member in family.members
+            if _normalise(member.name) == normalized_name
+        ]
+
+        if household_matches:
+            return None, (
+                f"The document identifies {household_matches[0].name}, "
+                "but that household member was not selected for this analysis."
+            )
+
+        return None, f"The patient name '{name}' does not exactly match a household member."
+
+    # First pass: attach clinical context only to the correct selected member.
     for doc in documents:
         if doc.doc_type in ("radiology", "discharge"):
-            name = str((doc.fields or {}).get("patient", {}).get("value") or "")
-            member, _ = _match_member(name, family.members)
+            member, error = match_selected_member(doc)
+
             if not member:
-                member = lead
+                ctx.gap(
+                    f"document_member_{doc.id}",
+                    "blocking",
+                    "Clinical document ownership needs confirmation",
+                    f"{doc.original_filename}: {error}",
+                    "Correct the patient field during document review, or select the correct household member.",
+                )
+                continue
+
+            fields = doc.fields or {}
+            candidates = (fields.get("diagnosis_candidates") or {}).get("value") or []
+
             codes = []
-            candidates = (doc.fields or {}).get("diagnosis_candidates", {}).get("value") or []
             if isinstance(candidates, list):
-                codes = [item.get("code") for item in candidates if isinstance(item, dict) and item.get("code")]
+                codes = [
+                    item.get("code")
+                    for item in candidates
+                    if isinstance(item, dict) and item.get("code")
+                ]
+
             diagnosis_by_member.setdefault(member.id, [])
             for code in codes:
                 if code not in diagnosis_by_member[member.id]:
                     diagnosis_by_member[member.id].append(code)
-            justification = (doc.fields or {}).get("clinical_justification", {}).get("value")
+
+            justification = (fields.get("clinical_justification") or {}).get("value")
             if justification and member.id not in justification_by_member:
                 justification_by_member[member.id] = str(justification)[:1500]
+
+        # A transcript/query is household-level context, not a patient claim.
         if doc.doc_type == "transcript" and not ctx.case.narrative:
-            ctx.case.narrative = str((doc.fields or {}).get("query", {}).get("value") or "")[:4000]
+            query = (doc.fields or {}).get("query") or {}
+            ctx.case.narrative = str(query.get("value") or "")[:4000]
             ctx.db.add(ctx.case)
             ctx.db.commit()
 
+    # Second pass: create separate claims for invoices and estimates.
     for doc in documents:
         if doc.doc_type not in ("invoice", "estimate"):
             continue
+
         fields = doc.fields or {}
-        name = str(fields.get("patient", {}).get("value") or "")
-        member, match_confidence = _match_member(name, family.members)
+        member, error = match_selected_member(doc)
+
         if not member:
-            member = lead
             ctx.gap(
                 f"patient_match_{doc.id}",
-                "action",
-                "Patient name on the document did not match a family member",
-                f"{doc.original_filename} names '{name or 'no patient'}'. It was attached to {lead.name}; confirm this.",
-                "Open the document review screen and confirm the patient.",
+                "blocking",
+                "Invoice or estimate needs patient confirmation",
+                f"{doc.original_filename}: {error}",
+                "Correct the patient name in document review before running the analysis again.",
             )
-        elif match_confidence < 0.9:
-            ctx.gap(
-                f"patient_match_{doc.id}",
-                "info",
-                "Patient name matched approximately",
-                f"{doc.original_filename} names '{name}', matched to {member.name}.",
-            )
-        provider = str(fields.get("provider", {}).get("value") or ctx.case.provider_name or "")
+            continue
+
+        provider = str(
+            (fields.get("provider") or {}).get("value")
+            or ctx.case.provider_name
+            or ""
+        )
+
         service_date = ctx.case.service_date
-        raw_date = fields.get("service_date", {}).get("value")
+        raw_date = (fields.get("service_date") or {}).get("value")
+
         if raw_date:
             try:
                 service_date = date.fromisoformat(str(raw_date))
             except ValueError:
-                pass
+                ctx.gap(
+                    f"service_date_{doc.id}",
+                    "blocking",
+                    "Service date needs confirmation",
+                    f"The service date in {doc.original_filename} could not be parsed.",
+                    "Correct the service date in case details and run the analysis again.",
+                )
+                continue
+
+        if service_date is None:
+            ctx.gap(
+                f"service_date_{doc.id}",
+                "blocking",
+                "Service date is required",
+                f"No service date is available for {doc.original_filename}.",
+                "Enter the actual service date in case details before running the analysis again.",
+            )
+            continue
+        ctx.resolve_gap(f"service_date_{doc.id}")
+
         claim = Claim(
             case_id=ctx.case.id,
             member_id=member.id,
             patient_name=member.name,
             provider_name=provider,
             service_date=service_date,
-            bill_number=str(fields.get("bill_number", {}).get("value") or "") or None,
+            bill_number=str((fields.get("bill_number") or {}).get("value") or "") or None,
             document_id=doc.id,
-            narrative=justification_by_member.get(member.id) or ctx.case.narrative,
+            narrative=(
+                justification_by_member.get(member.id)
+                or ctx.case.narrative
+            ),
         )
+
         ctx.db.add(claim)
         ctx.db.flush()
+
         icds = diagnosis_by_member.get(member.id, [])
+        lines_added = 0
+
         for line in fields.get("_lines") or []:
             if not isinstance(line, dict):
                 continue
-            try:
-                billed = Decimal(str(line.get("amount") or 0))
-            except Exception:
-                billed = Decimal("0")
-            if billed <= 0:
+
+            billed = _positive_decimal(line.get("amount"))
+            if billed is None:
+                ctx.gap(
+                    f"invalid_line_amount_{doc.id}_{len(claim.lines)}",
+                    "blocking",
+                    "Service line amount is invalid",
+                    f"A service line in {doc.original_filename} has an unreadable amount.",
+                    "Correct the line amount during document review.",
+                )
                 continue
-            quantity = int(line.get("quantity") or 1) or 1
+
+            raw_quantity = line.get("quantity")
+            known_quantity = _positive_quantity(raw_quantity)
+            quantity_known = known_quantity is not None
+            quantity = known_quantity or 1
+
             unit_rate = line.get("unit_rate")
-            try:
-                unit = Decimal(str(unit_rate)) if unit_rate else (billed / quantity if quantity else billed)
-            except Exception:
-                unit = billed
+            known_unit_rate = _positive_decimal(unit_rate)
+            unit_rate_known = known_unit_rate is not None
+            unit = known_unit_rate or Decimal("0")
+
             ctx.db.add(
                 ClaimLine(
                     claim_id=claim.id,
                     description=str(line.get("description") or "Service")[:300],
                     quantity=quantity,
+                    quantity_known=quantity_known and quantity > 0,
                     unit_rate=unit,
+                    unit_rate_known=unit_rate_known,
                     billed_amount=billed,
-                    cpt_code=(str(line.get("cpt_code")) if line.get("cpt_code") else None),
-                    icd_codes=list(dict.fromkeys(list(line.get("icd_codes") or []) + icds))[:6],
+                    cpt_code=(
+                        str(line.get("cpt_code"))
+                        if line.get("cpt_code")
+                        else None
+                    ),
+                    icd_codes=list(
+                        dict.fromkeys(
+                            list(line.get("icd_codes") or []) + icds
+                        )
+                    )[:6],
                     category=str(line.get("category") or "professional"),
                     excluded=False,
-                    code_confidence=Decimal(str(round(float(line.get("code_confidence") or 0), 3))),
+                    code_confidence=Decimal(
+                        str(round(float(line.get("code_confidence") or 0), 3))
+                    ),
                     code_source=str(line.get("code_source") or "unavailable"),
                     evidence=str(line.get("evidence") or "")[:1000],
                     note="; ".join(line.get("issues") or [])[:1000] or None,
                 )
             )
-        ctx.db.commit()
-        claims.append(claim)
+            lines_added += 1
 
-    manual_lines = (ctx.case.workflow_state or {}).get("manual_lines") or []
-    if manual_lines:
+        if lines_added:
+            ctx.resolve_gap(f"no_valid_lines_{doc.id}")
+            ctx.db.commit()
+            claims.append(claim)
+        else:
+            ctx.db.delete(claim)
+            ctx.db.commit()
+            ctx.gap(
+                f"no_valid_lines_{doc.id}",
+                "blocking",
+                "No usable service lines found",
+                f"No valid positive-amount service lines could be read from {doc.original_filename}.",
+                "Review the extracted service lines and correct the missing or invalid amounts.",
+            )
+
+    # Manual service lines must also identify their household member.
+    manual_lines = workflow_state.get("manual_lines") or []
+    manual_lines_by_member: dict[int, list[dict]] = {}
+
+    for index, line in enumerate(manual_lines):
+        if not isinstance(line, dict):
+            continue
+
+        raw_member_id = line.get("member_id")
+
+        if raw_member_id in (None, ""):
+            if len(selected_members) == 1:
+                member_id = next(iter(selected_members))
+            else:
+                ctx.gap(
+                    f"manual_line_member_{index}",
+                    "blocking",
+                    "Manual service line needs a patient",
+                    f"Manual service line {index + 1} does not identify a household member.",
+                    "Assign this service line to the correct selected household member.",
+                )
+                continue
+        else:
+            try:
+                member_id = int(raw_member_id)
+            except (TypeError, ValueError):
+                member_id = -1
+
+        if member_id not in selected_members:
+            ctx.gap(
+                f"manual_line_member_{index}",
+                "blocking",
+                "Manual service line has an invalid patient",
+                f"Manual service line {index + 1} refers to a member who is not selected for this case.",
+                "Assign the service line to a valid selected household member.",
+            )
+            continue
+
+        ctx.resolve_gap(f"manual_line_member_{index}")
+        manual_lines_by_member.setdefault(member_id, []).append(line)
+
+    if manual_lines and ctx.case.service_date is None:
+        ctx.gap(
+            "service_date_manual",
+            "blocking",
+            "Service date is required",
+            "A service date is required for manually entered service lines.",
+            "Enter the actual service date in case details before running the analysis again.",
+        )
+    else:
+        ctx.resolve_gap("service_date_manual")
+
+    # One manual claim per member, never one household-wide claim assigned to the lead.
+    for member_id, member_lines in manual_lines_by_member.items():
+        if ctx.case.service_date is None:
+            continue
+        member = selected_members[member_id]
+
         claim = Claim(
             case_id=ctx.case.id,
-            member_id=lead.id,
-            patient_name=lead.name,
+            member_id=member.id,
+            patient_name=member.name,
             provider_name=ctx.case.provider_name or "Self-declared provider",
             service_date=ctx.case.service_date,
             bill_number=None,
             narrative=ctx.case.narrative,
         )
+
         ctx.db.add(claim)
         ctx.db.flush()
-        for line in manual_lines:
-            try:
-                billed = Decimal(str(line.get("amount") or 0))
-            except Exception:
+
+        lines_added = 0
+
+        for line in member_lines:
+            billed = _positive_decimal(line.get("amount"))
+            if billed is None:
+                ctx.gap(
+                    f"invalid_manual_line_amount_{member_id}_{len(claim.lines)}",
+                    "blocking",
+                    "Manual service line amount is invalid",
+                    f"A manually entered line for {member.name} has an unreadable amount.",
+                    "Correct the manual line amount and rerun the analysis.",
+                )
                 continue
-            if billed <= 0:
-                continue
-            quantity = int(line.get("quantity") or 1) or 1
+
+            raw_quantity = line.get("quantity")
+            known_quantity = _positive_quantity(raw_quantity)
+            quantity_known = known_quantity is not None
+            quantity = known_quantity or 1
+
+            unit_rate = line.get("unit_rate")
+            known_unit_rate = _positive_decimal(unit_rate)
+            unit_rate_known = known_unit_rate is not None
+            unit = known_unit_rate or Decimal("0")
+
+            cpt_code = str(line.get("cpt_code") or "").strip() or None
+
             ctx.db.add(
                 ClaimLine(
                     claim_id=claim.id,
                     description=str(line.get("description") or "Service")[:300],
                     quantity=quantity,
-                    unit_rate=Decimal(str(line.get("unit_rate") or billed / quantity)),
+                    quantity_known=quantity_known and quantity > 0,
+                    unit_rate=unit,
+                    unit_rate_known=unit_rate_known,
                     billed_amount=billed,
-                    cpt_code=(str(line.get("cpt_code")) if line.get("cpt_code") else None),
+                    cpt_code=cpt_code,
                     icd_codes=list(line.get("icd_codes") or []),
                     category=str(line.get("category") or "professional"),
-                    code_confidence=Decimal("1") if line.get("cpt_code") else Decimal("0"),
-                    code_source="manual" if line.get("cpt_code") else "unavailable",
+                    code_confidence=(
+                        Decimal("1") if cpt_code else Decimal("0")
+                    ),
+                    code_source="manual" if cpt_code else "unavailable",
                 )
             )
-        ctx.db.commit()
-        claims.append(claim)
+            lines_added += 1
+
+        if lines_added:
+            ctx.resolve_gap(f"manual_lines_empty_{member_id}")
+            ctx.db.commit()
+            claims.append(claim)
+        else:
+            ctx.db.delete(claim)
+            ctx.db.commit()
+            ctx.gap(
+                f"manual_lines_empty_{member_id}",
+                "blocking",
+                "No valid manual service lines",
+                f"No valid positive-amount manual service lines were provided for {member.name}.",
+                "Correct the manual service line amounts.",
+            )
+
     return claims
 
 
@@ -712,7 +1029,7 @@ def coverage_node(ctx: RunContext) -> str:
                     "policy_id": policy.id,
                     "member_id": member.id,
                     "member_name": member.name,
-                    "service_date": (claim.service_date or ctx.case.service_date or date.today()).isoformat(),
+                    "service_date": claim.service_date.isoformat(),
                 }
             )
             benefits = service.benefits(
@@ -734,7 +1051,7 @@ def coverage_node(ctx: RunContext) -> str:
                     request={
                         "policy_number": policy.policy_number,
                         "member": member.name,
-                        "service_date": (claim.service_date or ctx.case.service_date or date.today()).isoformat(),
+                        "service_date": claim.service_date.isoformat(),
                     },
                     response={"eligibility": response, "benefits": benefits},
                 )
@@ -783,6 +1100,8 @@ def coverage_node(ctx: RunContext) -> str:
                 "Every selected policy either excludes this member or does not list them.",
                 "Select a policy that covers this member, or add the member to the policy.",
             )
+        else:
+            ctx.resolve_gap(f"no_cover_{claim.id}")
     ctx.save(eligibility=eligibility_state)
     ctx.emit(
         "Coverage Agent",
@@ -872,6 +1191,7 @@ def cob_node(ctx: RunContext) -> str:
     if not orders:
         ctx.gap("no_payer", "blocking", "No payer for this case", "None of the selected policies covers the patient(s).", "Fix the policy/member links.")
         return "pause"
+    ctx.resolve_gap("no_payer")
     ctx.emit(
         "COB Agent",
         "cob",
@@ -968,7 +1288,7 @@ def compliance_node(ctx: RunContext) -> str:
                     "policy_id": policy.id,
                     "member_id": member.id if member else None,
                     "member_name": member.name if member else claim.patient_name,
-                    "service_date": (claim.service_date or ctx.case.service_date or date.today()).isoformat(),
+                    "service_date": claim.service_date.isoformat(),
                     "procedure_codes": procedures,
                     "diagnosis_codes": diagnosis,
                     "estimated_cost": str(estimated),
@@ -1423,12 +1743,14 @@ def critic_node(ctx: RunContext) -> str:
     state = ctx.case.workflow_state or {}
     invariants = state.get("invariants") or []
     failed_invariants = [item for item in invariants if item.get("passed") is False]
+    blocking_gaps = [gap for gap in (state.get("gaps") or []) if gap.get("severity") == "blocking"]
     trace_count = (
         ctx.db.query(Adjudication).filter(Adjudication.case_id == ctx.case.id).count()
     )
     checks = [
         {"name": "Every claim was adjudicated", "passed": len(adjudications) >= len(claims) and len(claims) > 0, "detail": f"{len(adjudications)} plan results for {len(claims)} claims"},
         {"name": "Every invariant passed", "passed": not failed_invariants, "detail": f"{len(failed_invariants)} failed"},
+        {"name": "No blocking gaps remain", "passed": not blocking_gaps, "detail": f"{len(blocking_gaps)} unresolved"},
         {"name": "Financial report generated", "passed": any(r.kind == "json" for r in reports), "detail": ", ".join(sorted({r.kind for r in reports}))},
         {"name": "Letters generated for required pre-auth", "passed": len(letter_files) >= required_letters, "detail": f"{len(letter_files)} letter(s), {required_letters} required"},
         {"name": "Execution trace recorded", "passed": ctx.seq > 0, "detail": f"{ctx.seq} steps"},

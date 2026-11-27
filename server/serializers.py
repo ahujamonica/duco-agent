@@ -201,6 +201,9 @@ def case_out(case: Case) -> dict:
         "title": case.title,
         "status": case.status,
         "patient_member_id": case.patient_member_id,
+        "selected_member_ids": (
+        case.workflow_state or {}
+        ).get("selected_member_ids") or [case.patient_member_id],
         "provider_name": case.provider_name,
         "provider_in_network": case.provider_in_network,
         "service_date": case.service_date.isoformat() if case.service_date else None,
